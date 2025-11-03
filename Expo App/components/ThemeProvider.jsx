@@ -23,19 +23,6 @@ const darken = (hex, t = 0.2) => rgbToHex(mix(hexToRgb(hex), { r: 0, g: 0, b: 0 
 const STORAGE_KEY = "@theme_primary";
 const DEFAULT_PRIMARY = "#2563EB"; // Modern blue
 
-// Files that should use dynamic theme (all others will use static #E53E3E)
-const THEME_ENABLED_FILES = [
-  'HomeScreen.jsx',
-  'StoreProfileModal.jsx'
-];
-
-// Helper function to check if current file should use dynamic theme
-const shouldUseDynamicTheme = () => {
-  // This will be called from components that want to use dynamic theme
-  // For now, we'll allow it for the specified files
-  return true;
-};
-
 export const createTheme = (primary) => {
   const onPrimary = "#ffffff";
   return {

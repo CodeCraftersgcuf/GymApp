@@ -34,15 +34,6 @@ const LoginScreen = () => {
     Alert.alert("Success", "Logged in (placeholder)");
   };
 
-  // Debug function to clear storage
-  const handleClearStorage = async () => {
-    try {
-      await clearAuthStorage();
-      Alert.alert("Success", "Storage cleared! Please restart the app.");
-    } catch (error) {
-      Alert.alert("Error", "Failed to clear storage");
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,17 +105,7 @@ const LoginScreen = () => {
 
 
 
-        {/* Debug Section (add back later if needed) */}
-
-        {/* Links */}
-        {/* <View style={styles.rowLinks}>
-          <TouchableOpacity>
-            <ThemedText style={styles.linkText}>Continue as guest</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <ThemedText style={styles.linkText}>Forgot Password?</ThemedText>
-          </TouchableOpacity>
-        </View> */}
+      
       </View>
     </SafeAreaView>
   );

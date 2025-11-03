@@ -52,9 +52,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
     navigation.emit({ type: "tabLongPress", target: route.key });
   };
 
-  // Middle index (Home in your order)
-  const middleIndex = 0; // We won't elevate a middle tab; simple bar
-
   return (
     <View
       style={[
@@ -65,15 +62,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
       ]}
     >
       <View style={styles.bar}>
-        {/* Simple bar; no notch */}
-
-        {/* Render tabs */}
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
           const color = isFocused ? COLOR.active : COLOR.inactive;
 
-          // Regular tabs
           return (
             <View key={route.key} style={styles.slot}>
               <TouchableOpacity
@@ -105,7 +98,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 export default function MainNavigator() {
   return (
     <Tab.Navigator
-      initialRouteName="Home" // always start on Home (even if it's in the middle)
+      initialRouteName="Home"
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
@@ -149,9 +142,6 @@ const styles = StyleSheet.create({
       android: { elevation: 14 },
     }),
   },
-
-  // Notch removed
-
   slot: {
     flex: 1,
     alignItems: "center",
@@ -164,8 +154,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  icon: { width: 22, height: 22, resizeMode: "contain" },
   label: { fontSize: 11, fontWeight: "400" },
-
-  // Raised Home removed
 });
