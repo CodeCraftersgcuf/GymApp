@@ -8,22 +8,72 @@ import {
   Platform,
 } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "../screens/mainscreens/HomeScreen";
+import MyPlanScreen from "../screens/mainscreens/MyPlanScreen";
+import PlanDetailScreen from "../screens/mainscreens/PlanDetailScreen";
+import VideoLibraryScreen from "../screens/mainscreens/VideoLibraryScreen";
+import WorkoutVideosScreen from "../screens/mainscreens/WorkoutVideosScreen";
+import VideoDetailScreen from "../screens/mainscreens/VideoDetailScreen";
+import AchievementsScreen from "../screens/mainscreens/AchievementsScreen";
+import ProfileScreen from "../screens/mainscreens/ProfileScreen";
+import EditProfileScreen from "../screens/mainscreens/EditProfileScreen";
+import NotificationsScreen from "../screens/mainscreens/NotificationsScreen";
+import CommunityScreen from "../screens/mainscreens/CommunityScreen";
+import CustomerSupportScreen from "../screens/mainscreens/CustomerSupportScreen";
+import MyExercisesScreen from "../screens/mainscreens/MyExercisesScreen";
+import ExerciseCategoryScreen from "../screens/mainscreens/ExerciseCategoryScreen";
+import ExerciseDetailScreen from "../screens/mainscreens/ExerciseDetailScreen";
 import PackagesScreen from "../screens/mainscreens/PackagesScreen";
-import ExercisesScreen from "../screens/mainscreens/ExercisesScreen";
-import SettingsScreen from "../screens/mainscreens/settingsscreens/SettingsScreen";
+import PackageDetailScreen from "../screens/mainscreens/PackageDetailScreen";
+import ReviewsScreen from "../screens/mainscreens/ReviewsScreen";
+import FAQsScreen from "../screens/mainscreens/FAQsScreen";
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+// Home Stack Navigator - contains HomeScreen, MyPlanScreen, PlanDetailScreen, VideoLibraryScreen, WorkoutVideosScreen, VideoDetailScreen, AchievementsScreen, ProfileScreen, CommunityScreen, CustomerSupportScreen, MyExercisesScreen, ExerciseCategoryScreen, and ExerciseDetailScreen
+function HomeStackNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="MyPlan" component={MyPlanScreen} />
+      <Stack.Screen name="PlanDetail" component={PlanDetailScreen} />
+      <Stack.Screen name="VideoLibrary" component={VideoLibraryScreen} />
+      <Stack.Screen name="WorkoutVideos" component={WorkoutVideosScreen} />
+      <Stack.Screen name="VideoDetail" component={VideoDetailScreen} />
+      <Stack.Screen name="MyExercises" component={MyExercisesScreen} />
+      <Stack.Screen name="ExerciseCategory" component={ExerciseCategoryScreen} />
+      <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
+      <Stack.Screen name="Achievements" component={AchievementsScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Community" component={CommunityScreen} />
+      <Stack.Screen name="CustomerSupport" component={CustomerSupportScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Packages Stack Navigator - contains PackagesScreen and PackageDetailScreen
+function PackagesStackNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="PackagesMain" component={PackagesScreen} />
+      <Stack.Screen name="PackageDetail" component={PackageDetailScreen} />
+    </Stack.Navigator>
+  );
+}
 
 /* --------- tab icon names for Ionicons --------- */
 const TAB_ICONS = {
   Home: "home-outline",
-  Packages: "albums-outline",
-  Exercises: "barbell-outline",
-  Settings: "settings-outline",
+  Packages: "cube-outline",
+  Reviews: "chatbubble-outline",
+  FAQs: "help-circle-outline",
 };
 
 const COLOR = {
@@ -105,10 +155,10 @@ export default function MainNavigator() {
       }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Packages" component={PackagesScreen} />
-      <Tab.Screen name="Exercises" component={ExercisesScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Home" component={HomeStackNavigator} />
+      <Tab.Screen name="Reviews" component={ReviewsScreen} />
+      <Tab.Screen name="Packages" component={PackagesStackNavigator} />
+      <Tab.Screen name="FAQs" component={FAQsScreen} />
     </Tab.Navigator>
   );
 }

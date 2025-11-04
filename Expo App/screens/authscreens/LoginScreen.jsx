@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -14,11 +16,19 @@ import ThemedText from "../../components/ThemedText";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  // Redirect to MainApp if user is already authenticated (after loading completes)
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      // Navigate to MainApp in the parent navigator (RootNavigator)
+      navigation.getParent()?.navigate('MainApp');
+    }
+  }, [isAuthenticated, isLoading, navigation]);
 
   // Check if form is valid
   const isFormValid = email.trim() !== "" && password.trim() !== "";
@@ -34,18 +44,41 @@ const LoginScreen = () => {
     Alert.alert("Success", "Logged in (placeholder)");
   };
 
+  const handleGoogleLogin = () => {
+    Alert.alert("Google Login", "Google login functionality coming soon");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <ThemedText style={styles.title}>Login</ThemedText>
-        <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
+      <StatusBar barStyle="light-content" backgroundColor="#E53E3E" />
+      
+      {/* Red Header Band with PAKFIT Logo */}
+      <View style={styles.header}>
+        <ThemedText style={styles.logoText} font="oleo" weight="bold">
+          PAKFIT
+        </ThemedText>
+      </View>
 
-        {/* Email Field */}
+      {/* Dark Grey Main Content Area */}
+      <View style={styles.content}>
+        {/* Title and Subtitle */}
+        <View style={styles.titleSection}>
+          <ThemedText style={styles.title} variant="h1">
+            Sign in
+          </ThemedText>
+          <View style={styles.subtitleContainer}>
+            <ThemedText style={styles.subtitle}>
+              Enter your credentials to continue
+            </ThemedText>
+            <View style={styles.underline} />
+          </View>
+        </View>
+
+        {/* Email/Phone Field */}
         <View style={styles.inputWrapper}>
-          <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
+          <Ionicons name="mail-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
           <TextInput
-            placeholder="Enter email address"
+            placeholder="Email /Phone"
             placeholderTextColor="#999"
             style={styles.input}
             keyboardType="email-address"
@@ -58,9 +91,9 @@ const LoginScreen = () => {
 
         {/* Password Field */}
         <View style={styles.inputWrapper}>
-          <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
+          <Ionicons name="lock-closed-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
           <TextInput
-            placeholder="Enter password"
+            placeholder="Enter 4 Digit Password"
             placeholderTextColor="#999"
             style={styles.input}
             secureTextEntry={!passwordVisible}
@@ -68,6 +101,8 @@ const LoginScreen = () => {
             onChangeText={setPassword}
             autoCapitalize="none"
             autoCorrect={false}
+            maxLength={4}
+            keyboardType="number-pad"
           />
           <TouchableOpacity
             onPress={() => setPasswordVisible(!passwordVisible)}
@@ -76,7 +111,7 @@ const LoginScreen = () => {
             <Ionicons 
               name={passwordVisible ? "eye-outline" : "eye-off-outline"} 
               size={20} 
-              color="#999" 
+              color="#FFFFFF" 
             />
           </TouchableOpacity>
         </View>
@@ -89,23 +124,54 @@ const LoginScreen = () => {
             !isFormValid && styles.loginButtonDisabled,
           ]}
           disabled={!isFormValid}
+          activeOpacity={0.8}
         >
-          <ThemedText style={styles.loginText}>Login</ThemedText>
-        </TouchableOpacity>
-
-        {/* Create Account Button */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Register")}
-          style={styles.createAccountButton}
-        >
-          <ThemedText style={styles.createAccountText}>
-            Create Account
+          <ThemedText style={styles.loginText} font="manrope" weight="bold">
+            Login
           </ThemedText>
         </TouchableOpacity>
 
+        {/* Forgot Password Link */}
+        <TouchableOpacity style={styles.forgotPasswordContainer}>
+          <ThemedText style={styles.forgotPasswordText}>
+            Forgot your password?
+          </ThemedText>
+        </TouchableOpacity>
 
+        {/* OR Separator */}
+        <View style={styles.separator}>
+          <View style={styles.separatorLine} />
+          <ThemedText style={styles.separatorText}>OR</ThemedText>
+          <View style={styles.separatorLine} />
+        </View>
 
-      
+        {/* Google Login Button */}
+        <TouchableOpacity
+          onPress={handleGoogleLogin}
+          style={styles.googleButton}
+          activeOpacity={0.8}
+        >
+          <View style={styles.googleIconContainer}>
+            <ThemedText style={styles.googleIcon} font="manrope" weight="bold">
+              G
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.googleButtonText} font="manrope" weight="semibold">
+            Continue With Google
+          </ThemedText>
+        </TouchableOpacity>
+
+        {/* Sign Up Link */}
+        <View style={styles.signUpContainer}>
+          <ThemedText style={styles.signUpText}>
+            Sign up with email{" "}
+          </ThemedText>
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <ThemedText style={styles.signUpLink}>
+              click here
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -114,39 +180,62 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#1A1A1A",
+  },
+  header: {
+    backgroundColor: "#E53E3E",
+    paddingVertical: 20,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoText: {
+    fontSize: 28,
+    color: "#FFFFFF",
+    letterSpacing: 2,
   },
   content: {
     flex: 1,
-    padding: 24,
-    justifyContent: "center",
+    backgroundColor: "#2A2A2A",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
+  titleSection: {
+    alignItems: "center",
+    marginBottom: 32,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
+    fontSize: 32,
+    color: "#FFFFFF",
     marginBottom: 8,
   },
+  subtitleContainer: {
+    alignItems: "center",
+  },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
+    color: "#999",
     textAlign: "center",
-    color: "#666",
-    marginBottom: 32,
+  },
+  underline: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#999",
+    marginTop: 4,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#333",
   },
   inputIcon: {
     marginRight: 12,
@@ -154,93 +243,93 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: "#FFFFFF",
   },
   eyeIcon: {
     padding: 4,
   },
   loginButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#E53E3E",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 16,
     marginTop: 8,
+    marginBottom: 16,
   },
   loginButtonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: "#666",
     opacity: 0.6,
   },
   loginText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 18,
   },
-  createAccountButton: {
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 16,
-    borderRadius: 12,
+  forgotPasswordContainer: {
     alignItems: "center",
     marginBottom: 24,
   },
-  createAccountText: {
-    color: "#333",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  rowLinks: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  linkText: {
-    color: "#007AFF",
+  forgotPasswordText: {
     fontSize: 14,
-    fontWeight: "500",
+    color: "#999",
   },
-  roleButtons: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  roleTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  roleButtonRow: {
+  separator: {
     flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  roleButton: {
-    backgroundColor: "#F0F0F0",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-  },
-  roleButtonText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#666",
-  },
-  debugSection: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  debugButton: {
-    backgroundColor: "#FF6B6B",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
     alignItems: "center",
+    marginBottom: 24,
   },
-  debugButtonText: {
-    color: "#FFFFFF",
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#444",
+  },
+  separatorText: {
     fontSize: 14,
-    fontWeight: "bold",
+    color: "#999",
+    marginHorizontal: 16,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1A1A1A",
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  googleIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  googleIcon: {
+    fontSize: 18,
+    color: "#4285F4",
+    lineHeight: 18,
+  },
+  googleButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+  },
+  signUpContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  signUpText: {
+    fontSize: 14,
+    color: "#999",
+  },
+  signUpLink: {
+    fontSize: 14,
+    color: "#E53E3E",
+    textDecorationLine: "underline",
   },
 });
 

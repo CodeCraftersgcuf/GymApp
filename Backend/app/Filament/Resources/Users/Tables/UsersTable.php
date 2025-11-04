@@ -35,6 +35,14 @@ class UsersTable
                 TextColumn::make('weight_kg')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('user_type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'premium' => 'success',
+                        'simple' => 'gray',
+                        default => 'gray',
+                    })
+                    ->sortable(),
                 TextColumn::make('goal')
                     ->badge(),
                 TextColumn::make('locale')

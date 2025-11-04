@@ -12,12 +12,20 @@ use App\Http\Controllers\Api\V1\{
     ProgressLogController,
     CheckInController,
     ProductController,
+    PackageController,
     OrderController,
     WebhookController,
     CoachController,
     PlanController,
     ExerciseController,
     FaqController,
+    MessageController,
+    VideoLibraryController,
+    BannerController,
+    AchievementController,
+    ReviewController,
+    CommunityController,
+    NotificationController,
 };
 
 // Public routes
@@ -41,9 +49,36 @@ Route::prefix('v1')->group(function () {
     Route::get('/faqs', [FaqController::class, 'index']);
     Route::get('/faqs/{id}', [FaqController::class, 'show']);
     
+    // Public video libraries
+    Route::get('/video-libraries', [VideoLibraryController::class, 'index']);
+    Route::get('/video-libraries/{id}', [VideoLibraryController::class, 'show']);
+    
+    // Public banners
+    Route::get('/banners', [BannerController::class, 'index']);
+    Route::get('/banners/{id}', [BannerController::class, 'show']);
+    
+    // Public achievements
+    Route::get('/achievements', [AchievementController::class, 'index']);
+    Route::get('/achievements/{id}', [AchievementController::class, 'show']);
+    
+    // Public reviews
+    Route::get('/reviews', [ReviewController::class, 'index']);
+    Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+    
+    // Public communities (social media links)
+    Route::get('/communities', [CommunityController::class, 'index']);
+    Route::get('/communities/{id}', [CommunityController::class, 'show']);
+    
     // Public products/packages
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{id}', [ProductController::class, 'show']);
+    
+    // Public payment packages
+    Route::get('/packages', [PackageController::class, 'index']);
+    Route::get('/packages/{id}', [PackageController::class, 'show']);
+    
+    // Public WhatsApp support number
+    Route::get('/messages/whatsapp-support', [MessageController::class, 'whatsappSupport']);
     
     // Auth routes
     Route::post('/auth/register', [AuthController::class, 'register']);
@@ -82,6 +117,22 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Check-ins
     Route::get('/check-ins', [CheckInController::class, 'index']);
     Route::post('/check-ins', [CheckInController::class, 'store']);
+    
+    // Messages/Chat
+    Route::get('/messages', [MessageController::class, 'index']);
+    Route::post('/messages', [MessageController::class, 'store']);
+    Route::get('/messages/unread-count', [MessageController::class, 'unreadCount']);
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/{id}', [NotificationController::class, 'show']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    
+    // Premium Plans (My Plans) - Premium users only
+    Route::get('/myplans', [PlanController::class, 'myPlans'])->middleware('premium');
+    Route::get('/myplans/{id}', [PlanController::class, 'show'])->middleware('premium');
     
     // Products & Orders
     Route::get('/products', [ProductController::class, 'index']);

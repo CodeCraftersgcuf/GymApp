@@ -40,6 +40,15 @@
                 </select>
                 @error('role')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             </div>
+
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2">User Type</label>
+                <select name="user_type" required class="shadow border rounded w-full py-2 px-3">
+                    <option value="simple" {{ old('user_type', 'simple') == 'simple' ? 'selected' : '' }}>Simple User</option>
+                    <option value="premium" {{ old('user_type') == 'premium' ? 'selected' : '' }}>Premium User</option>
+                </select>
+                @error('user_type')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+            </div>
         </div>
 
         <div class="mt-6">

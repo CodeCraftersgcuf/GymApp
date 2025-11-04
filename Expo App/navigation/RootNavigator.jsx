@@ -42,26 +42,21 @@ class NavigationErrorBoundary extends React.Component {
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
-  const { isAuthenticated, isLoading, token, user, role, logout } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  console.log('RootNavigator render:', { isAuthenticated, isLoading, hasToken: !!token, hasUser: !!user, role });
+  console.log('RootNavigator render:', { isAuthenticated, isLoading });
 
-  // No custom loading screen; keep it simple
-  if (isLoading) return null;
-
-  // Additional check: if no token or user, force authentication
-  const shouldShowAuth = !isAuthenticated || !token || !user;
-
-  // We use a single main tab navigator for all roles in this skeleton
-
+  // Always render both screens for stable navigation structure
+  // Always start with Auth screen - AuthContext will clear dummy-token on load
+  // So users will always see login screen first unless they have real auth
   return (
     <NavigationErrorBoundary>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!shouldShowAuth ? (
-          <Stack.Screen name="MainApp" component={MainNavigator} options={{ headerShown: false }} />
-        ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        )}
+      <Stack.Navigator 
+        screenOptions={{ headerShown: false }}
+        initialRouteName="Auth"
+      >
+        <Stack.Screen name="Auth" component={AuthNavigator} />
+        <Stack.Screen name="MainApp" component={MainNavigator} />
       </Stack.Navigator>
     </NavigationErrorBoundary>
   );

@@ -1,16 +1,267 @@
-import React from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Dimensions,
+  Image,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import ThemedText from '../../components/ThemedText';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Feature grid items - using outline icons to match the photo
+const FEATURE_ITEMS = [
+  { id: 1, icon: 'list-outline', title: 'My Plan', locked: false },
+  { id: 2, icon: 'barbell-outline', title: 'My Exercises', locked: false },
+  { id: 3, icon: 'play-circle-outline', title: 'Video Library', locked: false },
+  { id: 4, icon: 'chatbubbles-outline', title: 'Chat with OB', locked: false },
+  { id: 5, icon: 'people-outline', title: 'Community', locked: false },
+  { id: 6, icon: 'trophy-outline', title: 'Achievements', locked: false },
+];
+
+// Dummy carousel images - placeholder URIs for now
+const CAROUSEL_IMAGES = [
+  { id: 1, uri: 'https://via.placeholder.com/400x200/E53E3E/FFFFFF?text=Image+1' },
+  { id: 2, uri: 'https://via.placeholder.com/400x200/E53E3E/FFFFFF?text=Image+2' },
+  { id: 3, uri: 'https://via.placeholder.com/400x200/E53E3E/FFFFFF?text=Image+3' },
+];
 
 const HomeScreen = () => {
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+  const scrollViewRef = useRef(null);
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+
+  const handleCarouselScroll = (event) => {
+    const slideSize = SCREEN_WIDTH - 48;
+    const offset = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offset / slideSize);
+    setActiveCarouselIndex(index);
+  };
+
+  const handleFeaturePress = (item) => {
+    if (item.locked) {
+      // Item is locked, don't navigate
+      return;
+    }
+
+    // Navigate based on feature
+    if (item.title === 'My Plan') {
+      navigation.navigate('MyPlan');
+    } else if (item.title === 'My Exercises') {
+      navigation.navigate('MyExercises');
+    } else if (item.title === 'Video Library') {
+      navigation.navigate('VideoLibrary');
+    } else if (item.title === 'Achievements') {
+      navigation.navigate('Achievements');
+    } else if (item.title === 'Community') {
+      navigation.navigate('Community');
+    } else if (item.title === 'Chat with OB') {
+      navigation.navigate('CustomerSupport');
+    }
+    // Add other feature navigation handlers here when needed
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <ThemedText variant="h1">Home Screen</ThemedText>
-        <ThemedText variant="body" style={styles.subtitle}>
-          Welcome to your gym app
-        </ThemedText>
-      </View>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Header */}
+        <View style={styles.header}>
+          {/* Left - User Icon */}
+          <TouchableOpacity
+            style={styles.userIconContainer}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.userIconCircle}>
+              <ThemedText style={styles.userIconText} font="manrope" weight="bold">
+                H
+              </ThemedText>
+            </View>
+          </TouchableOpacity>
+
+          {/* Center - PAKFIT Logo */}
+          <View style={styles.logoContainer}>
+            <ThemedText style={styles.headerLogoText} font="oleo" weight="bold">
+              PAKFIT
+            </ThemedText>
+          </View>
+
+          {/* Right - Notification Bell */}
+          <TouchableOpacity 
+            style={styles.notificationButton}
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Greeting */}
+        <View style={styles.greetingContainer}>
+          <ThemedText style={styles.greetingText} font="manrope" weight="medium">
+            Hello Hafiz,
+          </ThemedText>
+        </View>
+
+        {/* User Stats Card */}
+        <View style={styles.statsCard}>
+          {/* Left Side */}
+          <View style={styles.statsLeft}>
+            <View style={styles.freeUserBadge}>
+              <ThemedText style={styles.freeUserText} font="manrope" weight="medium">
+                Free user
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.weightText} font="manrope" weight="bold">
+              110 KG's
+            </ThemedText>
+            <ThemedText style={styles.weightLabel} font="manrope" weight="regular">
+              Your Current Weight
+            </ThemedText>
+          </View>
+
+          {/* Right Side */}
+          <View style={styles.statsRight}>
+            <View style={styles.statsLogoCircle}>
+              <ThemedText style={styles.statsLogoText} font="manrope" weight="bold">
+                F
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.timeText} font="manrope" weight="bold">
+              a few seconds
+            </ThemedText>
+            <ThemedText style={styles.timeLabel} font="manrope" weight="regular">
+              since you're here
+            </ThemedText>
+          </View>
+        </View>
+
+        {/* Consultation Plan Banner */}
+        <TouchableOpacity style={styles.consultationBanner}>
+          <ThemedText style={styles.consultationText} font="manrope" weight="medium">
+            Join our Consultation Plan
+          </ThemedText>
+          <View style={styles.watchVideoButton}>
+            <ThemedText style={styles.watchVideoText} font="manrope" weight="bold">
+              Watch Video
+            </ThemedText>
+          </View>
+        </TouchableOpacity>
+
+        {/* Feature Grid */}
+        <View style={styles.featureGrid}>
+          {FEATURE_ITEMS.map((item, index) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.featureCard,
+                (index + 1) % 3 !== 0 && styles.featureCardMarginRight,
+              ]}
+              disabled={item.locked}
+              activeOpacity={0.7}
+              onPress={() => handleFeaturePress(item)}
+            >
+              {item.locked && (
+                <View style={styles.lockIconContainer}>
+                  <Ionicons name="lock-closed" size={16} color="#E53E3E" />
+                </View>
+              )}
+              <Ionicons name={item.icon} size={36} color="#E53E3E" />
+              <ThemedText style={styles.featureTitle} font="manrope" weight="medium">
+                {item.title}
+              </ThemedText>
+              {item.locked && (
+                <ThemedText style={styles.lockedText} font="manrope" weight="regular">
+                  Locked
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Bottom Carousel Banner */}
+        <View style={styles.carouselContainer}>
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleCarouselScroll}
+            style={styles.carousel}
+            contentContainerStyle={styles.carouselContent}
+          >
+            {CAROUSEL_IMAGES.map((item) => (
+              <View key={item.id} style={styles.carouselItem}>
+                <View style={styles.carouselBanner}>
+                  {/* Left Side - PAKFIT Branding */}
+                  <View style={styles.bannerLeft}>
+                    <View style={styles.bannerLogoCircle}>
+                      <ThemedText style={styles.bannerLogoText} font="manrope" weight="bold">
+                        F
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.bannerBrandText} font="oleo" weight="bold">
+                      PAKFIT
+                    </ThemedText>
+                    <ThemedText style={styles.bannerTaglineText} font="manrope" weight="regular">
+                      Pakistan's 1st Fitness App
+                    </ThemedText>
+                    <View style={styles.badgesContainer}>
+                      <View style={styles.badgePlaceholder}>
+                        <ThemedText style={styles.badgeText} font="manrope" weight="medium">
+                          Google Play
+                        </ThemedText>
+                      </View>
+                      <View style={styles.badgePlaceholder}>
+                        <ThemedText style={styles.badgeText} font="manrope" weight="medium">
+                          App Store
+                        </ThemedText>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Right Side - Fitness Person Image */}
+                  <View style={styles.bannerRight}>
+                    <View style={styles.fitnessImagePlaceholder}>
+                      <TouchableOpacity style={styles.learnMoreButton}>
+                        <ThemedText style={styles.learnMoreText} font="manrope" weight="bold">
+                          LEARN MORE
+                        </ThemedText>
+                      </TouchableOpacity>
+                      <Ionicons name="fitness" size={80} color="#FFFFFF" />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Carousel Pagination Dots */}
+          <View style={styles.paginationContainer}>
+            {CAROUSEL_IMAGES.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.paginationDot,
+                  activeCarouselIndex === index && styles.paginationDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -18,18 +269,295 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#1A1A1A',
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120, // Space for bottom navigation
+  },
+  // Header Styles
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  userIconContainer: {
+    width: 48,
+  },
+  userIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF9500', // Orange color for user icon
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userIconText: {
+    fontSize: 20,
+    color: '#FFFFFF',
+  },
+  logoContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerLogoText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    letterSpacing: 2,
+  },
+  notificationButton: {
+    width: 48,
+    alignItems: 'flex-end',
+  },
+  // Greeting Styles
+  greetingContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  greetingText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+  },
+  // Stats Card Styles
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#2A2A2A',
+    marginHorizontal: 24,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+    marginBottom: 20,
+  },
+  statsLeft: {
+    flex: 1,
+  },
+  statsRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  freeUserBadge: {
+    backgroundColor: '#E53E3E',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  freeUserText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  weightText: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  weightLabel: {
+    fontSize: 12,
+    color: '#999',
+  },
+  statsLogoCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#E53E3E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statsLogoText: {
+    fontSize: 28,
+    color: '#FFFFFF',
+  },
+  timeText: {
+    fontSize: 24,
+    color: '#E53E3E',
+    marginBottom: 4,
+  },
+  timeLabel: {
+    fontSize: 12,
+    color: '#999',
+  },
+  // Consultation Banner Styles
+  consultationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#2A2A2A',
+    marginHorizontal: 24,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  consultationText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  watchVideoButton: {
+    backgroundColor: '#E53E3E',
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  watchVideoText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  // Feature Grid Styles
+  featureGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  featureCard: {
+    width: (SCREEN_WIDTH - 72) / 3, // 3 columns: 24px padding each side + 2 gaps of 12px
+    aspectRatio: 1,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 12,
+    position: 'relative',
+  },
+  featureCardMarginRight: {
+    marginRight: 12,
+  },
+  lockIconContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  featureTitle: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  lockedText: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 4,
+  },
+  // Carousel Styles
+  carouselContainer: {
+    marginBottom: 20,
+  },
+  carousel: {
+    height: 180,
+  },
+  carouselContent: {
+    paddingRight: 24,
+  },
+  carouselItem: {
+    width: SCREEN_WIDTH - 48,
+    marginLeft: 24,
+  },
+  carouselBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    padding: 16,
+    height: 180,
+  },
+  bannerLeft: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  bannerLogoCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E53E3E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  bannerLogoText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+  },
+  bannerBrandText: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  bannerTaglineText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  badgesContainer: {
+    flexDirection: 'column',
+    gap: 6,
+    marginTop: 4,
+  },
+  badgePlaceholder: {
+    backgroundColor: '#1A1A1A',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  badgeText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+  },
+  bannerRight: {
+    width: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+    position: 'relative',
+  },
+  fitnessImagePlaceholder: {
+    width: 100,
+    height: 160,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  learnMoreButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#E53E3E',
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    zIndex: 1,
+  },
+  learnMoreText: {
+    fontSize: 8,
+    color: '#FFFFFF',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-  },
-  subtitle: {
     marginTop: 12,
-    color: '#666',
-    textAlign: 'center',
+    gap: 8,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#555',
+  },
+  paginationDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 20,
   },
 });
 

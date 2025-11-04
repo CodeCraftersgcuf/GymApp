@@ -33,6 +33,16 @@ class UserForm
                 TextInput::make('weight_kg')
                     ->numeric()
                     ->default(null),
+                TextInput::make('city')
+                    ->default(null),
+                Select::make('user_type')
+                    ->label('User Type')
+                    ->options([
+                        'simple' => 'Simple User',
+                        'premium' => 'Premium User',
+                    ])
+                    ->default('simple')
+                    ->required(),
                 Select::make('goal')
                     ->options([
             'fat_loss' => 'Fat loss',

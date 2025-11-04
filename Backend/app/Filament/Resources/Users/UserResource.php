@@ -9,6 +9,7 @@ use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\User;
 use BackedEnum;
+use Filament\Panel;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,6 +22,30 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    // Hide from Filament navigation and routes since we use traditional Laravel admin routes
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
+    public static function shouldRegisterRoutes(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Override to prevent route name generation.
+     */
+    public static function getRouteBaseName(?Panel $panel = null): string
+    {
+        // Return empty string to prevent route name generation
+        if (!static::shouldRegisterRoutes()) {
+            return '';
+        }
+        
+        return parent::getRouteBaseName($panel);
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -41,6 +66,11 @@ class UserResource extends Resource
 
     public static function getPages(): array
     {
+        // Return empty array since we don't want Filament routes for this resource
+        if (!static::shouldRegisterRoutes()) {
+            return [];
+        }
+        
         return [
             'index' => ListUsers::route('/'),
             'create' => CreateUser::route('/create'),

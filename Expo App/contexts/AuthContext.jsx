@@ -50,6 +50,13 @@ export const AuthProvider = ({ children }) => {
 
       console.log('Auth data retrieved:', { hasToken: !!storedToken, hasUser: !!storedUser });
 
+      // Ignore "dummy-token" - it's just for testing, not real authentication
+      if (storedToken && storedToken === "dummy-token") {
+        console.log('Found dummy-token, clearing auth data');
+        await clearAuthData();
+        return;
+      }
+
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(storedUser);

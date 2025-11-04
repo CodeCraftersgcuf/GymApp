@@ -7,10 +7,18 @@ use App\Http\Controllers\Admin\{
     UserController,
     ProgramController,
     ProductController,
+    PackageController,
     OrderController,
     PlanController,
     ExerciseController,
     FaqController,
+    ChatController,
+    VideoLibraryController,
+    BannerController,
+    AchievementController,
+    ReviewController,
+    CommunityController,
+    NotificationController,
 };
 
 // Admin Routes
@@ -36,6 +44,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Products
         Route::resource('products', ProductController::class);
 
+        // Packages
+        Route::resource('packages', PackageController::class);
+
         // Orders
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
@@ -51,6 +62,36 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // FAQs
         Route::resource('faqs', FaqController::class)->except(['show']);
+
+        // Chat
+        Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+        Route::post('/chat/whatsapp', [ChatController::class, 'updateWhatsAppNumber'])->name('chat.update-whatsapp');
+        Route::get('/chat/{user}', [ChatController::class, 'show'])->name('chat.show');
+        Route::post('/chat/{user}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+
+        // Video Libraries
+        Route::resource('video-libraries', VideoLibraryController::class);
+        Route::post('/video-libraries/{videoLibrary}/items', [VideoLibraryController::class, 'storeItem'])->name('video-libraries.items.store');
+        Route::put('/video-libraries/{videoLibrary}/items/{item}', [VideoLibraryController::class, 'updateItem'])->name('video-libraries.items.update');
+        Route::delete('/video-libraries/{videoLibrary}/items/{item}', [VideoLibraryController::class, 'destroyItem'])->name('video-libraries.items.destroy');
+
+        // Banners
+        Route::resource('banners', BannerController::class);
+
+        // Achievements
+        Route::resource('achievements', AchievementController::class);
+        Route::post('/achievements/{achievement}/videos', [AchievementController::class, 'storeVideo'])->name('achievements.videos.store');
+        Route::put('/achievements/{achievement}/videos/{video}', [AchievementController::class, 'updateVideo'])->name('achievements.videos.update');
+        Route::delete('/achievements/{achievement}/videos/{video}', [AchievementController::class, 'destroyVideo'])->name('achievements.videos.destroy');
+
+        // Reviews
+        Route::resource('reviews', ReviewController::class);
+        
+        // Community
+        Route::resource('communities', CommunityController::class);
+        
+        // Notifications
+        Route::resource('notifications', NotificationController::class)->except(['edit', 'update']);
     });
 });
 

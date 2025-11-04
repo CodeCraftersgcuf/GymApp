@@ -41,6 +41,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Goal</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
@@ -53,6 +54,11 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                                     {{ $user->roles->first()->name ?? 'N/A' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full {{ $user->user_type === 'premium' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                    {{ ucfirst($user->user_type ?? 'simple') }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">{{ $user->goal ?? 'N/A' }}</td>
@@ -71,7 +77,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">No users found</td>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">No users found</td>
                         </tr>
                     @endforelse
                 </tbody>

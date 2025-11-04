@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -9,177 +9,247 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
 import ThemedText from "../../components/ThemedText";
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const { login } = useAuth();
   
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   
+  // Profile data state
+  const [profileData, setProfileData] = useState({
+    name: "",
+    gender: "",
+    weight: "",
+    location: "",
+    profileImage: null,
+  });
+
+  // Listen for when screen comes into focus (when returning from ProfileCompletionScreen)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Check if we have profile data from navigation params
+      if (route.params?.profileData) {
+        setProfileData(route.params.profileData);
+        // Clear params to avoid stale data
+        navigation.setParams({ profileData: undefined });
+      }
+    }, [route.params, navigation])
+  );
 
   // Check if form is valid
-  const isFormValid = firstName.trim() !== "" && lastName.trim() !== "" && email.trim() !== "" && password.trim() !== "" && confirmPassword.trim() !== "";
+  const isFormValid = 
+    email.trim() !== "" && 
+    password.trim() !== "" && 
+    acceptedTerms &&
+    profileData.name.trim() !== "" &&
+    profileData.gender !== "" &&
+    profileData.weight.trim() !== "" &&
+    profileData.location !== "";
 
-  // Removed extra fields for a minimal starting point
+  // Navigate to Profile Completion Screen
+  const handleNavigateToProfile = () => {
+    navigation.navigate("ProfileCompletion", {
+      registrationData: {
+        email,
+        password,
+        ...profileData,
+      },
+      onComplete: (data) => {
+        setProfileData(data);
+      },
+    });
+  };
 
   // Basic placeholder register (no API yet)
   const handleRegister = async () => {
     if (!isFormValid) {
-      Alert.alert("Error", "Please fill in all required fields");
+      if (!acceptedTerms) {
+        Alert.alert("Error", "Please accept the Terms of Use and Privacy Policy");
+      } else if (!email.trim() || !password.trim()) {
+        Alert.alert("Error", "Please fill in email and password");
+      } else {
+        Alert.alert("Error", "Please complete your profile information");
+        handleNavigateToProfile();
+      }
       return;
     }
+    
+    // Combine all registration data
+    const registrationPayload = {
+      email: email.trim(),
+      password: password.trim(),
+      name: profileData.name.trim(),
+      gender: profileData.gender,
+      weight: profileData.weight.trim(),
+      location: profileData.location,
+      profileImage: profileData.profileImage,
+    };
 
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-    await login("dummy-token", { email: email.trim(), name: `${firstName.trim()} ${lastName.trim()}` });
-    Alert.alert("Success", "Account created (placeholder)");
+    // TODO: Replace with actual API call
+    console.log("Registration payload:", registrationPayload);
+    
+    await login("dummy-token", { 
+      email: email.trim(),
+      name: profileData.name.trim(),
+      ...profileData 
+    });
+    Alert.alert("Success", "Account created successfully!");
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <ThemedText style={styles.title}>Create Account</ThemedText>
-        <ThemedText style={styles.subtitle}>Sign up to get started</ThemedText>
-
-        {/* First Name Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
-          <TextInput
-            placeholder="First Name"
-            placeholderTextColor="#999"
-            style={styles.input}
-            value={firstName}
-            onChangeText={setFirstName}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-        </View>
-
-        {/* Last Name Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
-          <TextInput
-            placeholder="Last Name"
-            placeholderTextColor="#999"
-            style={styles.input}
-            value={lastName}
-            onChangeText={setLastName}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-        </View>
-
-        {/* Email Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
-          <TextInput
-            placeholder="Email Address"
-            placeholderTextColor="#999"
-            style={styles.input}
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        {/* Username Field (optional) */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="at-outline" size={20} color="#999" style={styles.inputIcon} />
-          <TextInput
-            placeholder="Username"
-            placeholderTextColor="#999"
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        {/* Extra optional fields removed for minimal start */}
-
-        {/* Profile image removed as per requirement */}
-
-        {/* Password Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#999"
-            style={styles.input}
-            secureTextEntry={!passwordVisible}
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            onPress={() => setPasswordVisible(!passwordVisible)}
-            style={styles.eyeIcon}
-          >
-            <Ionicons 
-              name={passwordVisible ? "eye-outline" : "eye-off-outline"} 
-              size={20} 
-              color="#999" 
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Confirm Password Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-          <TextInput
-            placeholder="Confirm Password"
-            placeholderTextColor="#999"
-            style={styles.input}
-            secureTextEntry={!passwordVisible}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        {/* Register Button */}
-        <TouchableOpacity
-          onPress={handleRegister}
-          style={[
-            styles.registerButton,
-            !isFormValid && styles.registerButtonDisabled,
-          ]}
-          disabled={!isFormValid}
+      <StatusBar barStyle="light-content" backgroundColor="#E53E3E" />
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ThemedText style={styles.registerText}>Create Account</ThemedText>
-        </TouchableOpacity>
+          {/* Red Header Band with PAKFIT Logo */}
+          <View style={styles.header}>
+            <ThemedText style={styles.logoText} font="oleo" weight="bold">
+              PAKFIT
+            </ThemedText>
+          </View>
 
-        {/* Login Button */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Login")}
-          style={styles.loginButton}
-        >
-          <ThemedText style={styles.loginText}>
-            Already have an account? Login
-          </ThemedText>
-        </TouchableOpacity>
+          {/* Dark Grey Main Content Area */}
+          <View style={styles.content}>
+            {/* Title and Subtitle */}
+            <View style={styles.titleSection}>
+              <ThemedText style={styles.title} variant="h1">
+                CREATE ACCOUNT
+              </ThemedText>
+              <TouchableOpacity 
+                onPress={handleNavigateToProfile}
+                style={styles.subtitleContainer}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={styles.subtitle}>
+                  Enter your personal information
+                </ThemedText>
+                <View style={styles.underline} />
+              </TouchableOpacity>
+              {profileData.name && (
+                <View style={styles.profileStatusContainer}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <ThemedText style={styles.profileStatusText}>
+                    Profile completed
+                  </ThemedText>
+                </View>
+              )}
+            </View>
 
-        {/* Modals and date pickers removed */}
+            {/* Email/Phone Field */}
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Email / Phone"
+                placeholderTextColor="#999"
+                style={styles.input}
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
 
+            {/* Password Field */}
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+              <TextInput
+                placeholder="Set 4 Digit Password"
+                placeholderTextColor="#999"
+                style={styles.input}
+                secureTextEntry={!passwordVisible}
+                value={password}
+                onChangeText={setPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={4}
+                keyboardType="number-pad"
+              />
+              <TouchableOpacity
+                onPress={() => setPasswordVisible(!passwordVisible)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons 
+                  name={passwordVisible ? "eye-outline" : "eye-off-outline"} 
+                  size={20} 
+                  color="#FFFFFF" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Terms and Conditions Checkbox */}
+            <View style={styles.termsContainer}>
+              <TouchableOpacity
+                onPress={() => setAcceptedTerms(!acceptedTerms)}
+                style={[
+                  styles.checkbox,
+                  acceptedTerms && styles.checkboxChecked
+                ]}
+              >
+                {acceptedTerms && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+              <View style={styles.termsTextContainer}>
+                <ThemedText style={styles.termsText}>
+                  By continuing you accept our{" "}
+                </ThemedText>
+                <TouchableOpacity>
+                  <ThemedText style={styles.termsLink}>Privacy Policy</ThemedText>
+                </TouchableOpacity>
+                <ThemedText style={styles.termsText}> and </ThemedText>
+                <TouchableOpacity>
+                  <ThemedText style={styles.termsLink}>Terms of Use</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              onPress={handleRegister}
+              style={[
+                styles.registerButton,
+                !isFormValid && styles.registerButtonDisabled,
+              ]}
+              disabled={!isFormValid}
+              activeOpacity={0.8}
+            >
+              <ThemedText style={styles.registerText} font="manrope" weight="bold">
+                REGISTER
+              </ThemedText>
+            </TouchableOpacity>
+
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <ThemedText style={styles.loginText}>
+                Already have an account?{" "}
+              </ThemedText>
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                <ThemedText style={styles.loginLink}>
+                  Login
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -189,38 +259,77 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#1A1A1A",
+  },
+  header: {
+    backgroundColor: "#E53E3E",
+    paddingVertical: 20,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoText: {
+    fontSize: 28,
+    color: "#FFFFFF",
+    letterSpacing: 2,
   },
   scrollContent: {
-    padding: 24,
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#2A2A2A",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 24,
+    paddingTop: 32,
     paddingBottom: 40,
   },
+  titleSection: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
+    fontSize: 32,
+    color: "#FFFFFF",
     marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  subtitleContainer: {
+    alignItems: "center",
+    width: "100%",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
+    color: "#999",
     textAlign: "center",
-    color: "#666",
-    marginBottom: 32,
+  },
+  underline: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#999",
+    marginTop: 4,
+  },
+  profileStatusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 6,
+  },
+  profileStatusText: {
+    fontSize: 12,
+    color: "#10B981",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#1A1A1A",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#333",
   },
   inputIcon: {
     marginRight: 12,
@@ -228,87 +337,79 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: "#FFFFFF",
   },
   eyeIcon: {
     padding: 4,
   },
+  termsContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: "#555",
+    borderRadius: 4,
+    backgroundColor: "transparent",
+    marginRight: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: "#E53E3E",
+    borderColor: "#E53E3E",
+  },
+  termsTextContainer: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  termsText: {
+    fontSize: 12,
+    color: "#666",
+    lineHeight: 18,
+  },
+  termsLink: {
+    fontSize: 12,
+    color: "#666",
+    textDecorationLine: "underline",
+    lineHeight: 18,
+  },
   registerButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#E53E3E",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 16,
-    marginTop: 8,
+    marginBottom: 24,
   },
   registerButtonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: "#666",
     opacity: 0.6,
   },
   registerText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 18,
+    textTransform: "uppercase",
   },
-  loginButton: {
-    paddingVertical: 16,
+  loginContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   loginText: {
-    color: "#007AFF",
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 14,
+    color: "#999",
   },
-  imagePickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  imagePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-  },
-  imagePickerText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontWeight: '600',
-  },
-  imagePreview: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginLeft: 12,
-    backgroundColor: '#eaeaea',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  modalItem: {
-    paddingVertical: 12,
-  },
-  modalCancel: {
-    marginTop: 8,
-    alignItems: 'center',
+  loginLink: {
+    fontSize: 14,
+    color: "#E53E3E",
   },
 });
 

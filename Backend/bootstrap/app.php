@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api([
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
         ]);
+
+        // Register premium middleware alias
+        $middleware->alias([
+            'premium' => \App\Http\Middleware\EnsureUserIsPremium::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

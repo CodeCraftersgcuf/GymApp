@@ -35,6 +35,8 @@ class User extends Authenticatable implements MustVerifyEmail, HasMedia
         'dob',
         'height_cm',
         'weight_kg',
+        'city',
+        'user_type',
         'goal',
         'locale',
         'timezone',
@@ -151,6 +153,41 @@ class User extends Authenticatable implements MustVerifyEmail, HasMedia
     }
 
     /**
+     * Get messages sent/received by this user.
+     */
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    /**
+     * Get messages sent by admin to this user.
+     */
+    public function adminMessages()
+    {
+        return $this->hasMany(Message::class)->where('sender_type', 'admin');
+    }
+
+    /**
+     * Get notifications for this user (excluding notifications sent to all users).
+     */
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Get all notifications visible to this user (both specific and all users).
+     */
+    public function allNotifications()
+    {
+        return Notification::where(function ($q) {
+            $q->where('user_id', $this->id)
+              ->orWhereNull('user_id');
+        });
+    }
+
+    /**
      * Check if user is a coach.
      */
     public function isCoach(): bool
@@ -164,5 +201,21 @@ class User extends Authenticatable implements MustVerifyEmail, HasMedia
     public function isAdmin(): bool
     {
         return $this->hasRole('Admin');
+    }
+
+    /**
+     * Check if user is premium.
+     */
+    public function isPremium(): bool
+    {
+        return $this->user_type === 'premium';
+    }
+
+    /**
+     * Check if user is simple.
+     */
+    public function isSimple(): bool
+    {
+        return $this->user_type === 'simple';
     }
 }

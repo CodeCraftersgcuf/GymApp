@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
+use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -23,9 +24,19 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'gender' => $request->gender,
+            'weight_kg' => $request->weight_kg,
+            'city' => $request->city,
+            'user_type' => 'simple', // Default to simple user on registration
             'locale' => $request->locale ?? 'en',
             'timezone' => $request->timezone ?? 'UTC',
         ]);
+
+        // Handle profile picture upload
+        if ($request->hasFile('profile_picture')) {
+            $user->addMediaFromRequest('profile_picture')
+                ->toMediaCollection('profile_pictures');
+        }
 
         // Assign default User role
         $user->assignRole('User');
@@ -85,26 +96,46 @@ class AuthController extends Controller
     /**
      * Update user profile.
      */
-    public function updateProfile(Request $request)
+    public function updateProfile(UpdateProfileRequest $request)
     {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|nullable|string|unique:users,phone,' . $user->id,
-            'gender' => 'sometimes|in:male,female,other',
-            'dob' => 'sometimes|nullable|date',
-            'height_cm' => 'sometimes|nullable|numeric|min:50|max:300',
-            'weight_kg' => 'sometimes|nullable|numeric|min:20|max:500',
-            'goal' => 'sometimes|in:fat_loss,muscle_gain,maintenance,endurance,strength',
-            'locale' => 'sometimes|string|max:10',
-            'timezone' => 'sometimes|string|max:50',
-            'notification_token' => 'sometimes|nullable|string',
+        // Update user fields
+        $updateData = $request->only([
+            'name',
+            'phone',
+            'email',
+            'gender',
+            'dob',
+            'height_cm',
+            'weight_kg',
+            'goal',
+            'city',
+            'locale',
+            'timezone',
+            'notification_token',
         ]);
 
-        $user->update($validated);
+        // Remove null values to allow partial updates
+        $updateData = array_filter($updateData, function ($value) {
+            return $value !== null;
+        });
 
-        return new UserResource($user);
+        $user->update($updateData);
+
+        // Handle profile picture upload
+        if ($request->hasFile('profile_picture')) {
+            // Delete old profile picture
+            $user->clearMediaCollection('profile_pictures');
+            // Add new profile picture
+            $user->addMediaFromRequest('profile_picture')
+                ->toMediaCollection('profile_pictures');
+        }
+
+        return response()->json([
+            'data' => new UserResource($user),
+            'message' => 'Profile updated successfully',
+        ]);
     }
 
     /**

@@ -54,12 +54,14 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
             'role' => 'required|exists:roles,id',
+            'user_type' => 'sometimes|nullable|in:simple,premium',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'user_type' => $validated['user_type'] ?? 'simple',
             'email_verified_at' => now(),
         ]);
 
@@ -87,6 +89,8 @@ class UserController extends Controller
             'dob' => 'sometimes|nullable|date',
             'height_cm' => 'sometimes|nullable|numeric',
             'weight_kg' => 'sometimes|nullable|numeric',
+            'city' => 'sometimes|nullable|string|max:255',
+            'user_type' => 'sometimes|nullable|in:simple,premium',
             'goal' => 'sometimes|nullable|in:fat_loss,muscle_gain,maintenance,endurance,strength',
         ]);
 
