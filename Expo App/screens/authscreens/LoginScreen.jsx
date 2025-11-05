@@ -54,7 +54,7 @@ const LoginScreen = () => {
       
       {/* Red Header Band with PAKFIT Logo */}
       <View style={styles.header}>
-        <ThemedText style={styles.logoText} font="oleo" weight="bold">
+        <ThemedText style={styles.logoText} font="oleo" zs>
           PAKFIT
         </ThemedText>
       </View>
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: "#22222",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 24,
