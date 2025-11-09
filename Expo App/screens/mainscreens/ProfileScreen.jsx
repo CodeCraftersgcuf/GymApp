@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,11 +8,13 @@ import {
   StatusBar,
   Switch,
   Alert,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 
 // Dummy JSON data for other options - will be replaced with API data later
@@ -28,7 +30,20 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
+  const { theme, mode, toggleMode } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // Animation for theme toggle
+  const themeToggleAnim = useRef(new Animated.Value(mode === 'dark' ? 1 : 0)).current;
+  
+  useEffect(() => {
+    Animated.spring(themeToggleAnim, {
+      toValue: mode === 'dark' ? 1 : 0,
+      useNativeDriver: false,
+      tension: 100,
+      friction: 8,
+    }).start();
+  }, [mode]);
 
   const handleOptionPress = (option) => {
     // TODO: Handle navigation or action for each option
@@ -61,21 +76,25 @@ const ProfileScreen = () => {
     );
   };
 
+  const handleThemeToggle = () => {
+    toggleMode();
+  };
+
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Profile
           </ThemedText>
         </View>
@@ -89,62 +108,164 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* User Information Card */}
-        <View style={styles.userInfoCard}>
+        <Animated.View 
+          style={[
+            styles.userInfoCard, 
+            { 
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
           {/* Profile Picture */}
           <View style={styles.profileImageContainer}>
-            <View style={styles.profileImageCircle}>
-              <Ionicons name="person" size={32} color="#FFFFFF" />
-            </View>
+            <Animated.View 
+              style={[
+                styles.profileImageCircle,
+                { backgroundColor: theme.colors.primary }
+              ]}
+            >
+              <Ionicons name="person" size={32} color={theme.colors.onPrimary} />
+            </Animated.View>
           </View>
 
           {/* User Name and Type */}
           <View style={styles.userInfoContent}>
-            <ThemedText style={styles.userName} font="manrope" weight="bold">
+            <ThemedText style={[styles.userName, { color: theme.colors.text }]} font="manrope" weight="bold">
               User
             </ThemedText>
-            <ThemedText style={styles.userType} font="manrope" weight="regular">
+            <ThemedText style={[styles.userType, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
               Free User
             </ThemedText>
           </View>
 
           {/* Edit Button */}
           <TouchableOpacity
-            style={styles.editButton}
+            style={[styles.editButton, { backgroundColor: theme.colors.primary }]}
             onPress={handleEditPress}
             activeOpacity={0.8}
           >
-            <ThemedText style={styles.editButtonText} font="manrope" weight="medium">
+            <ThemedText style={[styles.editButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="medium">
               Edit
             </ThemedText>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Notification Section */}
-        <View style={styles.sectionCard}>
-          <ThemedText style={styles.sectionTitle} font="manrope" weight="regular">
+        <Animated.View 
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.colors.text }]} font="manrope" weight="regular">
             Notification
           </ThemedText>
           
           <View style={styles.notificationRow}>
             <View style={styles.notificationContent}>
-              <Ionicons name="notifications" size={20} color="#E53E3E" style={styles.notificationIcon} />
-              <ThemedText style={styles.notificationText} font="manrope" weight="regular">
+              <Ionicons name="notifications" size={20} color={theme.colors.primary} style={styles.notificationIcon} />
+              <ThemedText style={[styles.notificationText, { color: theme.colors.text }]} font="manrope" weight="regular">
                 Pop-up Notification
               </ThemedText>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#767577', true: '#E53E3E' }}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor="#767577"
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.onPrimary}
+              ios_backgroundColor={theme.colors.border}
             />
           </View>
-        </View>
+        </Animated.View>
+
+        {/* Theme Toggle Section */}
+        <Animated.View 
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.colors.text }]} font="manrope" weight="regular">
+            Appearance
+          </ThemedText>
+          
+          <View style={styles.themeRow}>
+            <View style={styles.themeContent}>
+              <Animated.View
+                style={[
+                  styles.themeIconContainer,
+                  {
+                    backgroundColor: themeToggleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['#FFD700', '#1A1A1A'],
+                    }),
+                  }
+                ]}
+              >
+                <Ionicons 
+                  name={mode === 'dark' ? 'moon' : 'sunny'} 
+                  size={20} 
+                  color={mode === 'dark' ? '#FFFFFF' : '#1A1A1A'} 
+                  style={styles.themeIcon} 
+                />
+              </Animated.View>
+              <View style={styles.themeTextContainer}>
+                <ThemedText style={[styles.themeText, { color: theme.colors.text }]} font="manrope" weight="regular">
+                  {mode === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                </ThemedText>
+                <ThemedText style={[styles.themeSubtext, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
+                  {mode === 'dark' ? 'Easier on the eyes' : 'Bright and clear'}
+                </ThemedText>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={handleThemeToggle}
+              style={[
+                styles.themeToggleButton,
+                {
+                  backgroundColor: theme.colors.primary,
+                }
+              ]}
+              activeOpacity={0.8}
+            >
+              <Animated.View
+                style={[
+                  styles.themeToggleThumb,
+                  {
+                    transform: [
+                      {
+                        translateX: themeToggleAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [2, 22],
+                        }),
+                      },
+                    ],
+                    backgroundColor: theme.colors.onPrimary,
+                  }
+                ]}
+              />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
         {/* Other Options Section */}
-        <View style={styles.sectionCard}>
-          <ThemedText style={styles.sectionTitle} font="manrope" weight="regular">
+        <Animated.View 
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.colors.text }]} font="manrope" weight="regular">
             Other
           </ThemedText>
           
@@ -153,29 +274,29 @@ const ProfileScreen = () => {
               key={option.id}
               style={[
                 styles.optionRow,
-                index !== OTHER_OPTIONS.length - 1 && styles.optionRowBorder,
+                index !== OTHER_OPTIONS.length - 1 && { borderBottomColor: theme.colors.border },
               ]}
               onPress={() => handleOptionPress(option)}
               activeOpacity={0.7}
             >
               <View style={styles.optionContent}>
-                <Ionicons name={option.icon} size={20} color="#E53E3E" style={styles.optionIcon} />
-                <ThemedText style={styles.optionText} font="manrope" weight="regular">
+                <Ionicons name={option.icon} size={20} color={theme.colors.primary} style={styles.optionIcon} />
+                <ThemedText style={[styles.optionText, { color: theme.colors.text }]} font="manrope" weight="regular">
                   {option.title}
                 </ThemedText>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           ))}
-        </View>
+        </Animated.View>
 
         {/* Sign Out Button */}
         <TouchableOpacity
-          style={styles.signOutButton}
+          style={[styles.signOutButton, { backgroundColor: theme.colors.primary }]}
           onPress={handleSignOut}
           activeOpacity={0.8}
         >
-          <ThemedText style={styles.signOutButtonText} font="manrope" weight="bold">
+          <ThemedText style={[styles.signOutButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
             Sign Out
           </ThemedText>
         </TouchableOpacity>
@@ -187,7 +308,6 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -196,7 +316,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -210,7 +329,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -228,12 +346,10 @@ const styles = StyleSheet.create({
   userInfoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#444',
   },
   profileImageContainer: {
     marginRight: 16,
@@ -242,7 +358,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#333',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -251,35 +366,28 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 18,
-    color: '#FFFFFF',
     marginBottom: 4,
   },
   userType: {
     fontSize: 14,
-    color: '#999',
   },
   editButton: {
-    backgroundColor: '#E53E3E',
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
   editButtonText: {
     fontSize: 14,
-    color: '#FFFFFF',
   },
   // Section Card Styles
   sectionCard: {
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#444',
   },
   sectionTitle: {
     fontSize: 16,
-    color: '#FFFFFF',
     marginBottom: 16,
   },
   // Notification Styles
@@ -298,7 +406,50 @@ const styles = StyleSheet.create({
   },
   notificationText: {
     fontSize: 14,
-    color: '#FFFFFF',
+  },
+  // Theme Toggle Styles
+  themeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  themeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  themeIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  themeIcon: {
+    // Icon color handled inline
+  },
+  themeTextContainer: {
+    flex: 1,
+  },
+  themeText: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  themeSubtext: {
+    fontSize: 12,
+  },
+  themeToggleButton: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  themeToggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   // Option Styles
   optionRow: {
@@ -306,10 +457,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-  },
-  optionRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   optionContent: {
     flexDirection: 'row',
@@ -321,11 +468,9 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 14,
-    color: '#FFFFFF',
   },
   // Sign Out Button Styles
   signOutButton: {
-    backgroundColor: '#E53E3E',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -334,7 +479,6 @@ const styles = StyleSheet.create({
   },
   signOutButtonText: {
     fontSize: 16,
-    color: '#FFFFFF',
   },
 });
 

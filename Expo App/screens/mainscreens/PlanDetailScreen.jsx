@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,11 +8,13 @@ import {
   StatusBar,
   Linking,
   Alert,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedText from '../../components/ThemedText';
+import { useTheme } from '../../components/ThemeProvider';
 
 // JSON data for protocols - will be replaced with API data later
 // Each item can have a YouTube video URL
@@ -58,11 +60,45 @@ const PlanDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
+  const cardAnimations = useRef(
+    PROTOCOLS_DATA.map(() => ({
+      translateY: new Animated.Value(30),
+      opacity: new Animated.Value(0),
+      scale: new Animated.Value(0.95),
+    }))
+  ).current;
 
   // Get the plan type and title from route params
   // Handle null explicitly since default parameter only works for undefined
   const { planType, title = 'Protocols', items: routeItems } = route.params || {};
   const items = routeItems ?? PROTOCOLS_DATA;
+
+  useEffect(() => {
+    const animations = items.map((_, index) =>
+      Animated.parallel([
+        Animated.timing(cardAnimations[index].translateY, {
+          toValue: 0,
+          duration: 400,
+          delay: index * 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardAnimations[index].opacity, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardAnimations[index].scale, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 50,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    Animated.stagger(50, animations).start();
+  }, []);
 
   const handlePlayPress = async (item) => {
     if (item.videoUrl) {
@@ -84,20 +120,20 @@ const PlanDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             {title.toUpperCase()}
           </ThemedText>
         </View>
@@ -112,26 +148,43 @@ const PlanDetailScreen = () => {
       >
         {/* Protocol Items List */}
         <View style={styles.listContainer}>
-          {items.map((item, index) => (
-            <View key={item.id || index} style={styles.protocolCard}>
-              {/* Left Side - Red Bullet Point and Text */}
-              <View style={styles.leftContent}>
-                <View style={styles.bulletPoint} />
-                <ThemedText style={styles.protocolText} font="manrope" weight="regular">
-                  {item.text}
-                </ThemedText>
-              </View>
-
-              {/* Right Side - Play Button */}
-              <TouchableOpacity
-                style={styles.playButton}
-                onPress={() => handlePlayPress(item)}
-                activeOpacity={0.7}
+          {items.map((item, index) => {
+            const animIndex = index < cardAnimations.length ? index : cardAnimations.length - 1;
+            return (
+              <Animated.View
+                key={item.id || index}
+                style={[
+                  styles.protocolCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    opacity: cardAnimations[animIndex].opacity,
+                    transform: [
+                      { translateY: cardAnimations[animIndex].translateY },
+                      { scale: cardAnimations[animIndex].scale },
+                    ],
+                  },
+                ]}
               >
-                <Ionicons name="play" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          ))}
+                {/* Left Side - Red Bullet Point and Text */}
+                <View style={styles.leftContent}>
+                  <View style={[styles.bulletPoint, { backgroundColor: theme.colors.primary }]} />
+                  <ThemedText style={[styles.protocolText, { color: theme.colors.text }]} font="manrope" weight="regular">
+                    {item.text}
+                  </ThemedText>
+                </View>
+
+                {/* Right Side - Play Button */}
+                <TouchableOpacity
+                  style={[styles.playButton, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => handlePlayPress(item)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="play" size={18} color={theme.colors.onPrimary} />
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -141,7 +194,6 @@ const PlanDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -150,7 +202,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -164,7 +215,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -186,10 +236,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FFFFFF',
     paddingVertical: 16,
     paddingHorizontal: 16,
   },
@@ -203,21 +251,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E53E3E',
     marginTop: 6,
     marginRight: 12,
   },
   protocolText: {
     flex: 1,
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 20,
   },
   playButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E53E3E',
     alignItems: 'center',
     justifyContent: 'center',
     paddingLeft: 2, // Offset play icon slightly right for better visual alignment

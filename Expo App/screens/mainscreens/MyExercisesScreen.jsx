@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,10 +9,12 @@ import {
   TextInput,
   Dimensions,
   Image,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -84,12 +86,58 @@ const EXERCISE_CATEGORIES_DATA = [
 const MyExercisesScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [thumbnailErrors, setThumbnailErrors] = useState({});
+  const [pressedCard, setPressedCard] = useState(null);
+  
+  // Animation for cards - staggered entrance
+  const cardAnimations = useRef(
+    EXERCISE_CATEGORIES_DATA.map(() => ({
+      scale: new Animated.Value(0.8),
+      opacity: new Animated.Value(0),
+      pressAnim: new Animated.Value(1),
+    }))
+  ).current;
+  
+  useEffect(() => {
+    // Staggered animation for cards
+    Animated.stagger(80,
+      cardAnimations.map(anim =>
+        Animated.parallel([
+          Animated.spring(anim.scale, {
+            toValue: 1,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim.opacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    ).start();
+  }, []);
 
-  const handleExerciseCategoryPress = async (category) => {
+  const handleExerciseCategoryPress = async (category, index) => {
+    // Press animation
+    const anim = cardAnimations[index];
+    Animated.sequence([
+      Animated.timing(anim.pressAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(anim.pressAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
     // Navigate to ExerciseCategoryScreen
-    // Pass the category title and exercises list (will be replaced with API call later)
     navigation.navigate('ExerciseCategory', {
       categoryTitle: category.title,
       exercises: null, // Will be fetched from API based on category
@@ -118,20 +166,20 @@ const MyExercisesScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             My Exercises
           </ThemedText>
         </View>
@@ -139,20 +187,27 @@ const MyExercisesScreen = () => {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+      <Animated.View 
+        style={[
+          styles.searchContainer,
+          {
+            opacity: cardAnimations[0]?.opacity || 1,
+          }
+        ]}
+      >
+        <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Ionicons name="search" size={20} color={theme.colors.textMuted} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.colors.text }]}
             placeholder="Search"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
             autoCorrect={false}
           />
         </View>
-      </View>
+      </Animated.View>
 
       {/* Main Content - Exercise Categories Grid */}
       <ScrollView
@@ -161,44 +216,64 @@ const MyExercisesScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.exerciseGrid}>
-          {filteredCategories.map((category, index) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.exerciseCard,
-                index % 2 === 0 && styles.exerciseCardLeft,
-              ]}
-              onPress={() => handleExerciseCategoryPress(category)}
-              activeOpacity={0.7}
-            >
-              {/* Thumbnail */}
-              <View style={styles.thumbnailContainer}>
-                {thumbnailErrors[category.id] ? (
-                  <View style={styles.thumbnailPlaceholder}>
-                    <Ionicons name="barbell" size={48} color="#555" />
+          {filteredCategories.map((category, index) => {
+            const anim = cardAnimations[index] || cardAnimations[0];
+            return (
+              <Animated.View
+                key={category.id}
+                style={[
+                  {
+                    opacity: anim.opacity,
+                    transform: [
+                      { scale: Animated.multiply(anim.scale, anim.pressAnim) },
+                    ],
+                  },
+                  index % 2 === 0 && styles.exerciseCardLeft,
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.exerciseCard}
+                  onPress={() => handleExerciseCategoryPress(category, index)}
+                  activeOpacity={1}
+                >
+                  {/* Thumbnail */}
+                  <View style={[styles.thumbnailContainer, { backgroundColor: theme.colors.surface }]}>
+                    {thumbnailErrors[category.id] ? (
+                      <View style={[styles.thumbnailPlaceholder, { backgroundColor: theme.colors.surface }]}>
+                        <Ionicons name="barbell" size={48} color={theme.colors.textMuted} />
+                      </View>
+                    ) : (
+                      <Image
+                        source={{ uri: getThumbnailUrl(category) }}
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                        onError={() => handleThumbnailError(category.id)}
+                      />
+                    )}
+                    {/* Play button overlay */}
+                    <View style={styles.playButtonOverlay}>
+                      <Animated.View 
+                        style={[
+                          styles.playButtonIcon,
+                          {
+                            backgroundColor: theme.colors.primary,
+                            transform: [{ scale: anim.pressAnim }],
+                          }
+                        ]}
+                      >
+                        <Ionicons name="play" size={24} color={theme.colors.onPrimary} />
+                      </Animated.View>
+                    </View>
                   </View>
-                ) : (
-                  <Image
-                    source={{ uri: getThumbnailUrl(category) }}
-                    style={styles.thumbnail}
-                    resizeMode="cover"
-                    onError={() => handleThumbnailError(category.id)}
-                  />
-                )}
-                {/* Play button overlay */}
-                <View style={styles.playButtonOverlay}>
-                  <View style={styles.playButtonIcon}>
-                    <Ionicons name="play" size={24} color="#FFFFFF" />
-                  </View>
-                </View>
-              </View>
 
-              {/* Title */}
-              <ThemedText style={styles.exerciseTitle} font="manrope" weight="regular" numberOfLines={2}>
-                {category.title}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
+                  {/* Title */}
+                  <ThemedText style={[styles.exerciseTitle, { color: theme.colors.text }]} font="manrope" weight="regular" numberOfLines={2}>
+                    {category.title}
+                  </ThemedText>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -208,7 +283,6 @@ const MyExercisesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -217,7 +291,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -231,7 +304,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -245,10 +317,10 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
+    borderWidth: 1,
   },
   searchIcon: {
     marginRight: 12,
@@ -256,7 +328,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
@@ -284,7 +355,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#2A2A2A',
   },
   thumbnail: {
     width: '100%',
@@ -293,7 +363,6 @@ const styles = StyleSheet.create({
   thumbnailPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2A2A2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -311,14 +380,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(229, 62, 62, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingLeft: 4,
   },
   exerciseTitle: {
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 20,
   },
 });

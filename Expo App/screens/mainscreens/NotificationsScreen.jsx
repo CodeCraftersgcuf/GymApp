@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,10 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 
 // Dummy JSON data for notifications - will be replaced with API data later
@@ -31,22 +33,51 @@ const NOTIFICATIONS_DATA = [
 const NotificationsScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
+  
+  // Animation for notification cards
+  const cardAnimations = useRef(
+    NOTIFICATIONS_DATA.map(() => ({
+      opacity: new Animated.Value(0),
+      translateY: new Animated.Value(20),
+    }))
+  ).current;
+  
+  useEffect(() => {
+    Animated.stagger(100,
+      cardAnimations.map(anim =>
+        Animated.parallel([
+          Animated.timing(anim.opacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.spring(anim.translateY, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    ).start();
+  }, []);
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Notifications
           </ThemedText>
         </View>
@@ -59,21 +90,35 @@ const NotificationsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {NOTIFICATIONS_DATA.map((notification) => (
-          <View key={notification.id} style={styles.notificationCard}>
-            <View style={styles.notificationHeader}>
-              <ThemedText style={styles.notificationTitle} font="manrope" weight="bold">
-                {notification.title}
+        {NOTIFICATIONS_DATA.map((notification, index) => {
+          const anim = cardAnimations[index];
+          return (
+            <Animated.View
+              key={notification.id}
+              style={[
+                styles.notificationCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  opacity: anim.opacity,
+                  transform: [{ translateY: anim.translateY }],
+                }
+              ]}
+            >
+              <View style={styles.notificationHeader}>
+                <ThemedText style={[styles.notificationTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
+                  {notification.title}
+                </ThemedText>
+                <ThemedText style={[styles.notificationTimestamp, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
+                  ({notification.timestamp})
+                </ThemedText>
+              </View>
+              <ThemedText style={[styles.notificationMessage, { color: theme.colors.text }]} font="manrope" weight="regular">
+                {notification.message}
               </ThemedText>
-              <ThemedText style={styles.notificationTimestamp} font="manrope" weight="regular">
-                ({notification.timestamp})
-              </ThemedText>
-            </View>
-            <ThemedText style={styles.notificationMessage} font="manrope" weight="regular">
-              {notification.message}
-            </ThemedText>
-          </View>
-        ))}
+            </Animated.View>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -82,7 +127,6 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -91,7 +135,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -105,7 +148,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -120,10 +162,8 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Space for bottom navigation
   },
   notificationCard: {
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#555', // Light gray border
     padding: 16,
     marginBottom: 16,
   },
@@ -135,17 +175,14 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: 16,
-    color: '#FFFFFF',
     marginRight: 8,
     fontWeight: 'bold',
   },
   notificationTimestamp: {
     fontSize: 14,
-    color: '#999', // Lighter gray for timestamp
   },
   notificationMessage: {
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 20,
   },
 });

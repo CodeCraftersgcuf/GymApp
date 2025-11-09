@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TextInput,
@@ -10,21 +10,51 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../components/ThemeProvider";
 import ThemedText from "../../components/ThemedText";
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { login } = useAuth();
+  const { theme, mode } = useTheme();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
   
   // Profile data state
   const [profileData, setProfileData] = useState({
@@ -108,8 +138,8 @@ const RegisterScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#E53E3E" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.primary} />
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
@@ -121,17 +151,34 @@ const RegisterScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Red Header Band with PAKFIT Logo */}
-          <View style={styles.header}>
-            <ThemedText style={styles.logoText} font="oleo" weight="bold">
+          <Animated.View 
+            style={[
+              styles.header,
+              {
+                backgroundColor: theme.colors.primary,
+                opacity: fadeAnim,
+              }
+            ]}
+          >
+            <ThemedText style={[styles.logoText, { color: theme.colors.onPrimary }]} font="oleo" weight="bold">
               PAKFIT
             </ThemedText>
-          </View>
+          </Animated.View>
 
-          {/* Dark Grey Main Content Area */}
-          <View style={styles.content}>
+          {/* Main Content Area */}
+          <Animated.View 
+            style={[
+              styles.content,
+              {
+                backgroundColor: theme.colors.surface,
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+              }
+            ]}
+          >
             {/* Title and Subtitle */}
             <View style={styles.titleSection}>
-              <ThemedText style={styles.title} variant="h1">
+              <ThemedText style={[styles.title, { color: theme.colors.text }]} variant="h1">
                 CREATE ACCOUNT
               </ThemedText>
               <TouchableOpacity 
@@ -139,43 +186,62 @@ const RegisterScreen = () => {
                 style={styles.subtitleContainer}
                 activeOpacity={0.7}
               >
-                <ThemedText style={styles.subtitle}>
+                <ThemedText style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
                   Enter your personal information
                 </ThemedText>
-                <View style={styles.underline} />
+                <View style={[styles.underline, { backgroundColor: theme.colors.border }]} />
               </TouchableOpacity>
               {profileData.name && (
-                <View style={styles.profileStatusContainer}>
-                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                  <ThemedText style={styles.profileStatusText}>
+                <Animated.View 
+                  style={styles.profileStatusContainer}
+                  entering={Animated.spring}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
+                  <ThemedText style={[styles.profileStatusText, { color: theme.colors.success }]}>
                     Profile completed
                   </ThemedText>
-                </View>
+                </Animated.View>
               )}
             </View>
 
             {/* Email/Phone Field */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+            <Animated.View 
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+            >
+              <Ionicons name="mail-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Email / Phone"
-                placeholderTextColor="#999"
-                style={styles.input}
+                placeholderTextColor={theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-            </View>
+            </Animated.View>
 
             {/* Password Field */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+            <Animated.View 
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+            >
+              <Ionicons name="lock-closed-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Set 4 Digit Password"
-                placeholderTextColor="#999"
-                style={styles.input}
+                placeholderTextColor={theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 secureTextEntry={!passwordVisible}
                 value={password}
                 onChangeText={setPassword}
@@ -191,10 +257,10 @@ const RegisterScreen = () => {
                 <Ionicons 
                   name={passwordVisible ? "eye-outline" : "eye-off-outline"} 
                   size={20} 
-                  color="#FFFFFF" 
+                  color={theme.colors.text} 
                 />
               </TouchableOpacity>
-            </View>
+            </Animated.View>
 
             {/* Terms and Conditions Checkbox */}
             <View style={styles.termsContainer}>
@@ -202,23 +268,31 @@ const RegisterScreen = () => {
                 onPress={() => setAcceptedTerms(!acceptedTerms)}
                 style={[
                   styles.checkbox,
-                  acceptedTerms && styles.checkboxChecked
+                  {
+                    borderColor: acceptedTerms ? theme.colors.primary : theme.colors.border,
+                    backgroundColor: acceptedTerms ? theme.colors.primary : 'transparent',
+                  }
                 ]}
+                activeOpacity={0.7}
               >
                 {acceptedTerms && (
-                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                  <Animated.View
+                    entering={Animated.spring}
+                  >
+                    <Ionicons name="checkmark" size={16} color={theme.colors.onPrimary} />
+                  </Animated.View>
                 )}
               </TouchableOpacity>
               <View style={styles.termsTextContainer}>
-                <ThemedText style={styles.termsText}>
+                <ThemedText style={[styles.termsText, { color: theme.colors.textSecondary }]}>
                   By continuing you accept our{" "}
                 </ThemedText>
                 <TouchableOpacity>
-                  <ThemedText style={styles.termsLink}>Privacy Policy</ThemedText>
+                  <ThemedText style={[styles.termsLink, { color: theme.colors.primary }]}>Privacy Policy</ThemedText>
                 </TouchableOpacity>
-                <ThemedText style={styles.termsText}> and </ThemedText>
+                <ThemedText style={[styles.termsText, { color: theme.colors.textSecondary }]}> and </ThemedText>
                 <TouchableOpacity>
-                  <ThemedText style={styles.termsLink}>Terms of Use</ThemedText>
+                  <ThemedText style={[styles.termsLink, { color: theme.colors.primary }]}>Terms of Use</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -228,28 +302,31 @@ const RegisterScreen = () => {
               onPress={handleRegister}
               style={[
                 styles.registerButton,
-                !isFormValid && styles.registerButtonDisabled,
+                {
+                  backgroundColor: isFormValid ? theme.colors.primary : theme.colors.border,
+                  opacity: isFormValid ? 1 : 0.6,
+                }
               ]}
               disabled={!isFormValid}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.registerText} font="manrope" weight="bold">
+              <ThemedText style={[styles.registerText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                 REGISTER
               </ThemedText>
             </TouchableOpacity>
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <ThemedText style={styles.loginText}>
+              <ThemedText style={[styles.loginText, { color: theme.colors.textSecondary }]}>
                 Already have an account?{" "}
               </ThemedText>
               <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <ThemedText style={styles.loginLink}>
+                <ThemedText style={[styles.loginLink, { color: theme.colors.primary }]}>
                   Login
                 </ThemedText>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -259,10 +336,8 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A1A1A",
   },
   header: {
-    backgroundColor: "#E53E3E",
     paddingVertical: 20,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 20,
     alignItems: "center",
@@ -270,7 +345,6 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 28,
-    color: "#FFFFFF",
     letterSpacing: 2,
   },
   scrollContent: {
@@ -278,7 +352,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: "#2A2A2A",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 24,
@@ -291,7 +364,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    color: "#FFFFFF",
     marginBottom: 8,
     textTransform: "uppercase",
   },
@@ -301,13 +373,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: "#999",
     textAlign: "center",
   },
   underline: {
     width: "100%",
     height: 1,
-    backgroundColor: "#999",
     marginTop: 4,
   },
   profileStatusContainer: {
@@ -318,18 +388,15 @@ const styles = StyleSheet.create({
   },
   profileStatusText: {
     fontSize: 12,
-    color: "#10B981",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#333",
   },
   inputIcon: {
     marginRight: 12,
@@ -337,7 +404,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#FFFFFF",
   },
   eyeIcon: {
     padding: 4,
@@ -352,17 +418,11 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: "#555",
     borderRadius: 4,
-    backgroundColor: "transparent",
     marginRight: 12,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: "#E53E3E",
-    borderColor: "#E53E3E",
   },
   termsTextContainer: {
     flex: 1,
@@ -372,28 +432,20 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: "#666",
     lineHeight: 18,
   },
   termsLink: {
     fontSize: 12,
-    color: "#666",
     textDecorationLine: "underline",
     lineHeight: 18,
   },
   registerButton: {
-    backgroundColor: "#E53E3E",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 24,
   },
-  registerButtonDisabled: {
-    backgroundColor: "#666",
-    opacity: 0.6,
-  },
   registerText: {
-    color: "#FFFFFF",
     fontSize: 18,
     textTransform: "uppercase",
   },
@@ -405,11 +457,9 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 14,
-    color: "#999",
   },
   loginLink: {
     fontSize: 14,
-    color: "#E53E3E",
   },
 });
 

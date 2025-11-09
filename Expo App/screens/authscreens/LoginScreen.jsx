@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TextInput,
@@ -8,19 +8,42 @@ import {
   Alert,
   StatusBar,
   Platform,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../components/ThemeProvider";
 import ThemedText from "../../components/ThemedText";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login, isAuthenticated, isLoading } = useAuth();
+  const { theme, mode } = useTheme();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Redirect to MainApp if user is already authenticated (after loading completes)
   useEffect(() => {
@@ -49,53 +72,86 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#E53E3E" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.primary} />
       
       {/* Red Header Band with PAKFIT Logo */}
-      <View style={styles.header}>
-        <ThemedText style={styles.logoText} font="oleo" zs>
+      <Animated.View 
+        style={[
+          styles.header,
+          { 
+            backgroundColor: theme.colors.primary,
+            opacity: fadeAnim,
+          }
+        ]}
+      >
+        <ThemedText style={[styles.logoText, { color: theme.colors.onPrimary }]} font="oleo" weight="bold">
           PAKFIT
         </ThemedText>
-      </View>
+      </Animated.View>
 
-      {/* Dark Grey Main Content Area */}
-      <View style={styles.content}>
+      {/* Main Content Area */}
+      <Animated.View 
+        style={[
+          styles.content,
+          {
+            backgroundColor: theme.colors.surface,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
         {/* Title and Subtitle */}
         <View style={styles.titleSection}>
-          <ThemedText style={styles.title} variant="h1">
+          <ThemedText style={[styles.title, { color: theme.colors.text }]} variant="h1">
             Sign in
           </ThemedText>
           <View style={styles.subtitleContainer}>
-            <ThemedText style={styles.subtitle}>
+            <ThemedText style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
               Enter your credentials to continue
             </ThemedText>
-            <View style={styles.underline} />
+            <View style={[styles.underline, { backgroundColor: theme.colors.border }]} />
           </View>
         </View>
 
         {/* Email/Phone Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="mail-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+        <Animated.View 
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: theme.colors.surfaceAlt,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
+          <Ionicons name="mail-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
           <TextInput
             placeholder="Email /Phone"
-            placeholderTextColor="#999"
-            style={styles.input}
+            placeholderTextColor={theme.colors.textMuted}
+            style={[styles.input, { color: theme.colors.text }]}
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             autoCorrect={false}
           />
-        </View>
+        </Animated.View>
 
         {/* Password Field */}
-        <View style={styles.inputWrapper}>
-          <Ionicons name="lock-closed-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+        <Animated.View 
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: theme.colors.surfaceAlt,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
+          <Ionicons name="lock-closed-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
           <TextInput
             placeholder="Enter 4 Digit Password"
-            placeholderTextColor="#999"
-            style={styles.input}
+            placeholderTextColor={theme.colors.textMuted}
+            style={[styles.input, { color: theme.colors.text }]}
             secureTextEntry={!passwordVisible}
             value={password}
             onChangeText={setPassword}
@@ -111,68 +167,77 @@ const LoginScreen = () => {
             <Ionicons 
               name={passwordVisible ? "eye-outline" : "eye-off-outline"} 
               size={20} 
-              color="#FFFFFF" 
+              color={theme.colors.text} 
             />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Login Button */}
         <TouchableOpacity
           onPress={handleLogin}
           style={[
             styles.loginButton,
-            !isFormValid && styles.loginButtonDisabled,
+            {
+              backgroundColor: isFormValid ? theme.colors.primary : theme.colors.border,
+              opacity: isFormValid ? 1 : 0.6,
+            }
           ]}
           disabled={!isFormValid}
           activeOpacity={0.8}
         >
-          <ThemedText style={styles.loginText} font="manrope" weight="bold">
+          <ThemedText style={[styles.loginText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
             Login
           </ThemedText>
         </TouchableOpacity>
 
         {/* Forgot Password Link */}
         <TouchableOpacity style={styles.forgotPasswordContainer}>
-          <ThemedText style={styles.forgotPasswordText}>
+          <ThemedText style={[styles.forgotPasswordText, { color: theme.colors.textSecondary }]}>
             Forgot your password?
           </ThemedText>
         </TouchableOpacity>
 
         {/* OR Separator */}
         <View style={styles.separator}>
-          <View style={styles.separatorLine} />
-          <ThemedText style={styles.separatorText}>OR</ThemedText>
-          <View style={styles.separatorLine} />
+          <View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
+          <ThemedText style={[styles.separatorText, { color: theme.colors.textSecondary }]}>OR</ThemedText>
+          <View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
         </View>
 
         {/* Google Login Button */}
         <TouchableOpacity
           onPress={handleGoogleLogin}
-          style={styles.googleButton}
+          style={[
+            styles.googleButton,
+            {
+              backgroundColor: theme.colors.surfaceAlt,
+              borderColor: theme.colors.border,
+            }
+          ]}
           activeOpacity={0.8}
         >
-          <View style={styles.googleIconContainer}>
-            <ThemedText style={styles.googleIcon} font="manrope" weight="bold">
+          <View style={[styles.googleIconContainer, { backgroundColor: theme.colors.onPrimary }]}>
+            <ThemedText style={[styles.googleIcon, { color: theme.colors.primary }]} font="manrope" weight="bold">
               G
             </ThemedText>
           </View>
-          <ThemedText style={styles.googleButtonText} font="manrope" weight="semibold">
+          <ThemedText style={[styles.googleButtonText, { color: theme.colors.text }]} font="manrope" weight="semibold">
             Continue With Google
           </ThemedText>
         </TouchableOpacity>
 
         {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
-          <ThemedText style={styles.signUpText}>
+          <ThemedText style={[styles.signUpText, { color: theme.colors.textSecondary }]}>
             Sign up with email{" "}
           </ThemedText>
           <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-            <ThemedText style={styles.signUpLink}>
+            <ThemedText style={[styles.signUpLink, { color: theme.colors.primary }]}>
               click here
             </ThemedText>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -180,10 +245,8 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A1A1A",
   },
   header: {
-    backgroundColor: "#E53E3E",
     paddingVertical: 20,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 20,
     alignItems: "center",
@@ -191,12 +254,10 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 28,
-    color: "#FFFFFF",
     letterSpacing: 2,
   },
   content: {
     flex: 1,
-    backgroundColor: "#22222",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 24,
@@ -209,7 +270,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    color: "#FFFFFF",
     marginBottom: 8,
   },
   subtitleContainer: {
@@ -217,25 +277,21 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: "#999",
     textAlign: "center",
   },
   underline: {
     width: "100%",
     height: 1,
-    backgroundColor: "#999",
     marginTop: 4,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1A1A1A",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#333",
   },
   inputIcon: {
     marginRight: 12,
@@ -243,25 +299,18 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#FFFFFF",
   },
   eyeIcon: {
     padding: 4,
   },
   loginButton: {
-    backgroundColor: "#E53E3E",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 8,
     marginBottom: 16,
   },
-  loginButtonDisabled: {
-    backgroundColor: "#666",
-    opacity: 0.6,
-  },
   loginText: {
-    color: "#FFFFFF",
     fontSize: 18,
   },
   forgotPasswordContainer: {
@@ -270,7 +319,6 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: "#999",
   },
   separator: {
     flexDirection: "row",
@@ -280,40 +328,33 @@ const styles = StyleSheet.create({
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#444",
   },
   separatorText: {
     fontSize: 14,
-    color: "#999",
     marginHorizontal: 16,
   },
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1A1A1A",
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "#333",
   },
   googleIconContainer: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   googleIcon: {
     fontSize: 18,
-    color: "#4285F4",
     lineHeight: 18,
   },
   googleButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
   },
   signUpContainer: {
@@ -324,11 +365,9 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     fontSize: 14,
-    color: "#999",
   },
   signUpLink: {
     fontSize: 14,
-    color: "#E53E3E",
     textDecorationLine: "underline",
   },
 });

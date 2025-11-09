@@ -8,9 +8,11 @@ import {
   Image,
   TouchableOpacity,
   Platform,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,6 +40,25 @@ const HomeScreen = () => {
   const scrollViewRef = useRef(null);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { theme, mode } = useTheme();
+  
+  // Animation for cards
+  const cardAnimations = useRef(
+    FEATURE_ITEMS.map(() => new Animated.Value(0))
+  ).current;
+  
+  React.useEffect(() => {
+    Animated.stagger(50, 
+      cardAnimations.map(anim => 
+        Animated.spring(anim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        })
+      )
+    ).start();
+  }, []);
 
   const handleCarouselScroll = (event) => {
     const slideSize = SCREEN_WIDTH - 48;
@@ -70,22 +91,22 @@ const HomeScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Top Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           {/* Left - User Icon */}
           <TouchableOpacity
             style={styles.userIconContainer}
             onPress={() => navigation.navigate('Profile')}
             activeOpacity={0.7}
           >
-            <View style={styles.userIconCircle}>
-              <ThemedText style={styles.userIconText} font="manrope" weight="bold">
+            <View style={[styles.userIconCircle, { backgroundColor: theme.colors.primary }]}>
+              <ThemedText style={[styles.userIconText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                 H
               </ThemedText>
             </View>
@@ -93,7 +114,7 @@ const HomeScreen = () => {
 
           {/* Center - PAKFIT Logo */}
           <View style={styles.logoContainer}>
-            <ThemedText style={styles.headerLogoText} font="oleo" weight="bold">
+            <ThemedText style={[styles.headerLogoText, { color: theme.colors.text }]} font="oleo" weight="bold">
               PAKFIT
             </ThemedText>
           </View>
@@ -104,19 +125,27 @@ const HomeScreen = () => {
             onPress={() => navigation.navigate('Notifications')}
             activeOpacity={0.7}
           >
-            <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
+            <Ionicons name="notifications-outline" size={24} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Greeting */}
         <View style={styles.greetingContainer}>
-          <ThemedText style={styles.greetingText} font="manrope" weight="medium">
+          <ThemedText style={[styles.greetingText, { color: theme.colors.text }]} font="manrope" weight="medium">
             Hello Hafiz,
           </ThemedText>
         </View>
 
         {/* User Stats Card */}
-        <View style={styles.statsCard}>
+        <Animated.View 
+          style={[
+            styles.statsCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            }
+          ]}
+        >
           {/* Left Side */}
           <View style={styles.statsLeft}>
             <View style={styles.freeUserBadge}>
@@ -142,11 +171,11 @@ const HomeScreen = () => {
             <ThemedText style={styles.timeText} font="manrope" weight="bold">
               a few seconds
             </ThemedText>
-            <ThemedText style={styles.timeLabel} font="manrope" weight="regular">
+            <ThemedText style={[styles.timeLabel, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
               since you're here
             </ThemedText>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Consultation Plan Banner */}
         <TouchableOpacity style={styles.consultationBanner}>
@@ -163,31 +192,51 @@ const HomeScreen = () => {
         {/* Feature Grid */}
         <View style={styles.featureGrid}>
           {FEATURE_ITEMS.map((item, index) => (
-            <TouchableOpacity
+            <Animated.View
               key={item.id}
               style={[
-                styles.featureCard,
-                (index + 1) % 3 !== 0 && styles.featureCardMarginRight,
+                {
+                  opacity: cardAnimations[index],
+                  transform: [
+                    {
+                      scale: cardAnimations[index].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                      }),
+                    },
+                  ],
+                },
               ]}
-              disabled={item.locked}
-              activeOpacity={0.7}
-              onPress={() => handleFeaturePress(item)}
             >
-              {item.locked && (
-                <View style={styles.lockIconContainer}>
-                  <Ionicons name="lock-closed" size={16} color="#E53E3E" />
-                </View>
-              )}
-              <Ionicons name={item.icon} size={36} color="#E53E3E" />
-              <ThemedText style={styles.featureTitle} font="manrope" weight="medium">
-                {item.title}
-              </ThemedText>
-              {item.locked && (
-                <ThemedText style={styles.lockedText} font="manrope" weight="regular">
-                  Locked
+              <TouchableOpacity
+                style={[
+                  styles.featureCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                  (index + 1) % 3 !== 0 && styles.featureCardMarginRight,
+                ]}
+                disabled={item.locked}
+                activeOpacity={0.7}
+                onPress={() => handleFeaturePress(item)}
+              >
+                {item.locked && (
+                  <View style={styles.lockIconContainer}>
+                    <Ionicons name="lock-closed" size={16} color={theme.colors.primary} />
+                  </View>
+                )}
+                <Ionicons name={item.icon} size={36} color={theme.colors.primary} />
+                <ThemedText style={[styles.featureTitle, { color: theme.colors.text }]} font="manrope" weight="medium">
+                  {item.title}
                 </ThemedText>
-              )}
-            </TouchableOpacity>
+                {item.locked && (
+                  <ThemedText style={[styles.lockedText, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
+                    Locked
+                  </ThemedText>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           ))}
         </View>
 
@@ -269,7 +318,6 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   scrollView: {
     flex: 1,
@@ -285,6 +333,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 16,
+    borderBottomWidth: 1,
   },
   userIconContainer: {
     width: 48,
@@ -293,13 +342,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF9500', // Orange color for user icon
     alignItems: 'center',
     justifyContent: 'center',
   },
   userIconText: {
     fontSize: 20,
-    color: '#FFFFFF',
   },
   logoContainer: {
     flex: 1,
@@ -307,7 +354,6 @@ const styles = StyleSheet.create({
   },
   headerLogoText: {
     fontSize: 24,
-    color: '#FFFFFF',
     letterSpacing: 2,
   },
   notificationButton: {
@@ -321,17 +367,14 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 18,
-    color: '#FFFFFF',
   },
   // Stats Card Styles
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#2A2A2A',
     marginHorizontal: 24,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#333',
     marginBottom: 20,
   },
   statsLeft: {
@@ -342,7 +385,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   freeUserBadge: {
-    backgroundColor: '#E53E3E',
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -351,38 +393,31 @@ const styles = StyleSheet.create({
   },
   freeUserText: {
     fontSize: 12,
-    color: '#FFFFFF',
   },
   weightText: {
     fontSize: 32,
-    color: '#FFFFFF',
     marginBottom: 4,
   },
   weightLabel: {
     fontSize: 12,
-    color: '#999',
   },
   statsLogoCircle: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#E53E3E',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   statsLogoText: {
     fontSize: 28,
-    color: '#FFFFFF',
   },
   timeText: {
     fontSize: 24,
-    color: '#E53E3E',
     marginBottom: 4,
   },
   timeLabel: {
     fontSize: 12,
-    color: '#999',
   },
   // Consultation Banner Styles
   consultationBanner: {
@@ -420,7 +455,6 @@ const styles = StyleSheet.create({
   featureCard: {
     width: (SCREEN_WIDTH - 72) / 3, // 3 columns: 24px padding each side + 2 gaps of 12px
     aspectRatio: 1,
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -428,6 +462,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginBottom: 12,
     position: 'relative',
+    borderWidth: 1,
   },
   featureCardMarginRight: {
     marginRight: 12,
@@ -439,13 +474,11 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 12,
-    color: '#FFFFFF',
     marginTop: 12,
     textAlign: 'center',
   },
   lockedText: {
     fontSize: 10,
-    color: '#999',
     marginTop: 4,
   },
   // Carousel Styles

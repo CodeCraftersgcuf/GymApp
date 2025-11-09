@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,11 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Animated,
+  LayoutAnimation,
+  UIManager,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // Dummy JSON data for FAQs - will be replaced with API data later
 const FAQS_DATA = [
@@ -69,9 +79,51 @@ const FAQS_DATA = [
 const FAQsScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
   const [expandedItems, setExpandedItems] = useState(new Set([1])); // First item expanded by default
+  
+  // Animation for FAQ cards
+  const cardAnimations = useRef(
+    FAQS_DATA.map(() => ({
+      opacity: new Animated.Value(0),
+      translateY: new Animated.Value(20),
+    }))
+  ).current;
+  
+  useEffect(() => {
+    // Staggered animation for FAQ cards
+    Animated.stagger(50,
+      cardAnimations.map(anim =>
+        Animated.parallel([
+          Animated.timing(anim.opacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.spring(anim.translateY, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    ).start();
+  }, []);
 
   const toggleItem = (id) => {
+    // Smooth layout animation
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
+    
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -84,20 +136,20 @@ const FAQsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             FAQs
           </ThemedText>
         </View>
@@ -112,31 +164,51 @@ const FAQsScreen = () => {
       >
         {FAQS_DATA.map((faq, index) => {
           const isExpanded = expandedItems.has(faq.id);
+          const anim = cardAnimations[index];
           return (
-            <View key={faq.id} style={styles.faqCard}>
+            <Animated.View
+              key={faq.id}
+              style={[
+                styles.faqCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  opacity: anim.opacity,
+                  transform: [{ translateY: anim.translateY }],
+                }
+              ]}
+            >
               <TouchableOpacity
                 style={styles.faqHeader}
                 onPress={() => toggleItem(faq.id)}
                 activeOpacity={0.7}
               >
-                <ThemedText style={styles.faqQuestion} font="manrope" weight="regular">
+                <ThemedText style={[styles.faqQuestion, { color: theme.colors.text }]} font="manrope" weight="regular">
                   {index + 1}. {faq.question}
                 </ThemedText>
-                <Ionicons
-                  name={isExpanded ? "chevron-up" : "chevron-down"}
-                  size={24}
-                  color="#E53E3E"
-                />
+                <Animated.View
+                  style={{
+                    transform: [{
+                      rotate: isExpanded ? '180deg' : '0deg',
+                    }],
+                  }}
+                >
+                  <Ionicons
+                    name="chevron-down"
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                </Animated.View>
               </TouchableOpacity>
               
               {isExpanded && (
-                <View style={styles.faqAnswerContainer}>
-                  <ThemedText style={styles.faqAnswer} font="manrope" weight="regular">
+                <View style={[styles.faqAnswerContainer, { borderTopColor: theme.colors.border }]}>
+                  <ThemedText style={[styles.faqAnswer, { color: theme.colors.text }]} font="manrope" weight="regular">
                     {faq.answer}
                   </ThemedText>
                 </View>
               )}
-            </View>
+            </Animated.View>
           );
         })}
       </ScrollView>
@@ -147,7 +219,6 @@ const FAQsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -156,7 +227,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -170,7 +240,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
     textTransform: 'uppercase',
   },
@@ -186,10 +255,8 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Space for bottom navigation
   },
   faqCard: {
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#444',
     marginBottom: 16,
     overflow: 'hidden',
   },
@@ -203,19 +270,16 @@ const styles = StyleSheet.create({
   faqQuestion: {
     flex: 1,
     fontSize: 14,
-    color: '#FFFFFF',
     marginRight: 12,
   },
   faqAnswerContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: '#333',
     paddingTop: 12,
   },
   faqAnswer: {
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 20,
   },
 });

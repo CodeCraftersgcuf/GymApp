@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -12,11 +12,13 @@ import {
   StatusBar,
   Modal,
   Image,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { useTheme } from "../../components/ThemeProvider";
 import ThemedText from "../../components/ThemedText";
 
 // Dummy user data - will be replaced with actual user data from API/context later
@@ -32,6 +34,7 @@ const DUMMY_USER_DATA = {
 const EditProfileScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
 
   const [name, setName] = useState(DUMMY_USER_DATA.name);
   const [email, setEmail] = useState(DUMMY_USER_DATA.email);
@@ -41,6 +44,26 @@ const EditProfileScreen = () => {
   const [profileImage, setProfileImage] = useState(DUMMY_USER_DATA.profileImage);
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   // Get first letter of name for profile placeholder
   const profileInitial = name.trim() ? name.trim().charAt(0).toUpperCase() : "?";
@@ -170,24 +193,24 @@ const EditProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <View style={styles.titleContainer}>
-            <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+            <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
               Edit Profile
             </ThemedText>
           </View>
@@ -200,106 +223,160 @@ const EditProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Main Content */}
-          <View style={styles.content}>
+          <Animated.View 
+            style={[
+              styles.content,
+              {
+                backgroundColor: theme.colors.surface,
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
             {/* Profile Picture */}
-            <TouchableOpacity 
-              style={styles.profilePictureContainer}
-              onPress={handleImagePicker}
-              activeOpacity={0.8}
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ scale: fadeAnim }],
+              }}
             >
-              <View style={styles.profilePicture}>
-                {profileImage ? (
-                  <Image 
-                    source={{ uri: profileImage }} 
-                    style={styles.profileImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <ThemedText style={styles.profileInitial}>{profileInitial}</ThemedText>
-                )}
-              </View>
-              <View style={styles.cameraIconContainer}>
-                <Ionicons name="camera" size={20} color="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.profilePictureContainer}
+                onPress={handleImagePicker}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.profilePicture, { backgroundColor: theme.colors.primary, borderColor: theme.colors.onPrimary }]}>
+                  {profileImage ? (
+                    <Image 
+                      source={{ uri: profileImage }} 
+                      style={styles.profileImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <ThemedText style={[styles.profileInitial, { color: theme.colors.onPrimary }]}>{profileInitial}</ThemedText>
+                  )}
+                </View>
+                <View style={[styles.cameraIconContainer, { backgroundColor: theme.colors.primary, borderColor: theme.colors.surface }]}>
+                  <Ionicons name="camera" size={20} color={theme.colors.onPrimary} />
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
 
             {/* Name Field */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+            <Animated.View 
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+            >
+              <Ionicons name="person-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Name"
-                placeholderTextColor="#999"
-                style={styles.input}
+                placeholderTextColor={theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
                 autoCorrect={false}
               />
-            </View>
+            </Animated.View>
 
             {/* Email Field */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+            <Animated.View 
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+            >
+              <Ionicons name="mail-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Email"
-                placeholderTextColor="#999"
-                style={styles.input}
+                placeholderTextColor={theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-            </View>
+            </Animated.View>
 
             {/* Gender Field */}
             <TouchableOpacity
-              style={styles.inputWrapper}
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
               onPress={() => setShowGenderModal(true)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="people-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+              <Ionicons name="people-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Gender"
-                placeholderTextColor={gender ? "#FFFFFF" : "#999"}
-                style={styles.input}
+                placeholderTextColor={gender ? theme.colors.text : theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 value={gender}
                 editable={false}
               />
-              <Ionicons name="chevron-down" size={20} color="#999" />
+              <Ionicons name="chevron-down" size={20} color={theme.colors.textMuted} />
             </TouchableOpacity>
 
             {/* Weight Field */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="scale-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+            <Animated.View 
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+            >
+              <Ionicons name="scale-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Weight"
-                placeholderTextColor="#999"
-                style={styles.input}
+                placeholderTextColor={theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
               />
-              <TouchableOpacity style={styles.unitButton}>
-                <ThemedText style={styles.unitButtonText}>KG</ThemedText>
+              <TouchableOpacity style={[styles.unitButton, { backgroundColor: theme.colors.primary }]}>
+                <ThemedText style={[styles.unitButtonText, { color: theme.colors.onPrimary }]}>KG</ThemedText>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
 
             {/* Location Field */}
             <TouchableOpacity
-              style={styles.inputWrapper}
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
               onPress={() => setShowLocationModal(true)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="location-outline" size={20} color="#FFFFFF" style={styles.inputIcon} />
+              <Ionicons name="location-outline" size={20} color={theme.colors.text} style={styles.inputIcon} />
               <TextInput
                 placeholder="Location"
-                placeholderTextColor={location ? "#FFFFFF" : "#999"}
-                style={styles.input}
+                placeholderTextColor={location ? theme.colors.text : theme.colors.textMuted}
+                style={[styles.input, { color: theme.colors.text }]}
                 value={location}
                 editable={false}
               />
-              <Ionicons name="chevron-down" size={20} color="#999" style={{ marginRight: 8 }} />
-              <TouchableOpacity style={styles.unitButton}>
-                <ThemedText style={styles.unitButtonText}>PK</ThemedText>
+              <Ionicons name="chevron-down" size={20} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
+              <TouchableOpacity style={[styles.unitButton, { backgroundColor: theme.colors.primary }]}>
+                <ThemedText style={[styles.unitButtonText, { color: theme.colors.onPrimary }]}>PK</ThemedText>
               </TouchableOpacity>
             </TouchableOpacity>
 
@@ -308,16 +385,21 @@ const EditProfileScreen = () => {
               onPress={handleSave}
               style={[
                 styles.saveButton,
-                (!name.trim() || !email.trim() || !gender || !weight.trim() || !location) && styles.saveButtonDisabled,
+                {
+                  backgroundColor: (!name.trim() || !email.trim() || !gender || !weight.trim() || !location)
+                    ? theme.colors.border
+                    : theme.colors.primary,
+                  opacity: (!name.trim() || !email.trim() || !gender || !weight.trim() || !location) ? 0.6 : 1,
+                }
               ]}
               disabled={!name.trim() || !email.trim() || !gender || !weight.trim() || !location}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.saveButtonText} font="manrope" weight="bold">
+              <ThemedText style={[styles.saveButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                 SAVE
               </ThemedText>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -333,17 +415,18 @@ const EditProfileScreen = () => {
           activeOpacity={1}
           onPress={() => setShowGenderModal(false)}
         >
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Select Gender</ThemedText>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <ThemedText style={[styles.modalTitle, { color: theme.colors.text }]}>Select Gender</ThemedText>
             {genderOptions.map((option) => (
               <TouchableOpacity
                 key={option}
-                style={styles.modalOption}
+                style={[styles.modalOption, { borderBottomColor: theme.colors.border }]}
                 onPress={() => handleSelectGender(option)}
+                activeOpacity={0.7}
               >
-                <ThemedText style={styles.modalOptionText}>{option}</ThemedText>
+                <ThemedText style={[styles.modalOptionText, { color: theme.colors.text }]}>{option}</ThemedText>
                 {gender === option && (
-                  <Ionicons name="checkmark" size={20} color="#E53E3E" />
+                  <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -363,17 +446,18 @@ const EditProfileScreen = () => {
           activeOpacity={1}
           onPress={() => setShowLocationModal(false)}
         >
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Select Location</ThemedText>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <ThemedText style={[styles.modalTitle, { color: theme.colors.text }]}>Select Location</ThemedText>
             {locationOptions.map((option) => (
               <TouchableOpacity
                 key={option}
-                style={styles.modalOption}
+                style={[styles.modalOption, { borderBottomColor: theme.colors.border }]}
                 onPress={() => handleSelectLocation(option)}
+                activeOpacity={0.7}
               >
-                <ThemedText style={styles.modalOptionText}>{option}</ThemedText>
+                <ThemedText style={[styles.modalOptionText, { color: theme.colors.text }]}>{option}</ThemedText>
                 {location === option && (
-                  <Ionicons name="checkmark" size={20} color="#E53E3E" />
+                  <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -387,7 +471,6 @@ const EditProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A1A1A",
   },
   header: {
     flexDirection: "row",
@@ -396,7 +479,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
   },
   backButton: {
     width: 40,
@@ -410,7 +492,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: "#FFFFFF",
     fontWeight: "bold",
   },
   rightSpacer: {
@@ -421,7 +502,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: "#1A1A1A",
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 40,
@@ -436,11 +516,9 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#E53E3E",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#FFFFFF",
   },
   profileImage: {
     width: "100%",
@@ -449,32 +527,27 @@ const styles = StyleSheet.create({
   },
   profileInitial: {
     fontSize: 48,
-    color: "#FFFFFF",
     fontWeight: "bold",
   },
   cameraIconContainer: {
     position: "absolute",
     bottom: 5,
     right: 5,
-    backgroundColor: "#E53E3E",
     borderRadius: 15,
     width: 32,
     height: 32,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#1A1A1A",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 56,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#333",
   },
   inputIcon: {
     marginRight: 12,
@@ -482,34 +555,25 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#FFFFFF",
   },
   unitButton: {
-    backgroundColor: "#E53E3E",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     marginLeft: 8,
   },
   unitButtonText: {
-    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
   },
   saveButton: {
-    backgroundColor: "#E53E3E",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 8,
     marginBottom: 24,
   },
-  saveButtonDisabled: {
-    backgroundColor: "#666",
-    opacity: 0.6,
-  },
   saveButtonText: {
-    color: "#FFFFFF",
     fontSize: 18,
     textTransform: "uppercase",
   },
@@ -519,7 +583,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#2A2A2A",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
@@ -527,7 +590,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    color: "#FFFFFF",
     marginBottom: 20,
     fontWeight: "600",
   },
@@ -537,11 +599,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
   },
   modalOptionText: {
     fontSize: 16,
-    color: "#FFFFFF",
   },
 });
 

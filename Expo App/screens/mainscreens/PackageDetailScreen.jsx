@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,11 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedText from '../../components/ThemedText';
+import { useTheme } from '../../components/ThemeProvider';
 
 // Dummy JSON data for package details - will be replaced with API data later
 const PACKAGE_DETAILS = {
@@ -37,26 +39,44 @@ const PackageDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   // Get package data from route params or use default
   const packageData = route.params?.packageData || PACKAGE_DETAILS;
   const { title, price, features } = packageData;
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Packages
           </ThemedText>
         </View>
@@ -70,29 +90,48 @@ const PackageDetailScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Package Card */}
-        <View style={styles.packageCard}>
+        <Animated.View
+          style={[
+            styles.packageCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           {/* Package Title */}
-          <ThemedText style={styles.packageTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.packageTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             {title}
           </ThemedText>
 
           {/* Price */}
-          <ThemedText style={styles.packagePrice} font="manrope" weight="bold">
+          <ThemedText style={[styles.packagePrice, { color: theme.colors.primary }]} font="manrope" weight="bold">
             {price}
           </ThemedText>
 
           {/* Features List */}
           <View style={styles.featuresContainer}>
             {features.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <Ionicons name="checkmark" size={20} color="#E53E3E" style={styles.checkmark} />
-                <ThemedText style={styles.featureText} font="manrope" weight="regular">
+              <Animated.View
+                key={index}
+                style={[
+                  styles.featureItem,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateX: slideAnim }],
+                  },
+                ]}
+              >
+                <Ionicons name="checkmark" size={20} color={theme.colors.primary} style={styles.checkmark} />
+                <ThemedText style={[styles.featureText, { color: theme.colors.text }]} font="manrope" weight="regular">
                   {feature}
                 </ThemedText>
-              </View>
+              </Animated.View>
             ))}
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -101,7 +140,6 @@ const PackageDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -110,7 +148,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -124,7 +161,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -139,20 +175,16 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Space for bottom navigation
   },
   packageCard: {
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#444',
   },
   packageTitle: {
     fontSize: 20,
-    color: '#FFFFFF',
     marginBottom: 16,
   },
   packagePrice: {
     fontSize: 32,
-    color: '#E53E3E',
     marginBottom: 24,
   },
   featuresContainer: {
@@ -170,7 +202,6 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 20,
   },
 });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedText from '../../components/ThemedText';
+import { useTheme } from '../../components/ThemeProvider';
 
 // Dummy JSON data for achievements - will be replaced with API data later
 const ACHIEVEMENTS_DATA = [
@@ -50,6 +52,48 @@ const PROFILE_DATA = {
 const AchievementsScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const cardAnimations = useRef(
+    ACHIEVEMENTS_DATA.map(() => ({
+      translateY: new Animated.Value(30),
+      opacity: new Animated.Value(0),
+    }))
+  ).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.stagger(100,
+      cardAnimations.map(anim =>
+        Animated.parallel([
+          Animated.timing(anim.opacity, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.spring(anim.translateY, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    ).start();
+  }, []);
 
   const handleAchievementPress = (achievement) => {
     // TODO: Navigate to achievement detail screen or handle press
@@ -57,20 +101,20 @@ const AchievementsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Achievements
           </ThemedText>
         </View>
@@ -84,9 +128,17 @@ const AchievementsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Section */}
-        <View style={styles.profileSection}>
+        <Animated.View
+          style={[
+            styles.profileSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           {/* Name */}
-          <ThemedText style={styles.profileName} font="manrope" weight="bold">
+          <ThemedText style={[styles.profileName, { color: theme.colors.text }]} font="manrope" weight="bold">
             {PROFILE_DATA.name}
           </ThemedText>
 
@@ -94,7 +146,7 @@ const AchievementsScreen = () => {
           <View style={styles.profileContent}>
             {/* Profile Picture */}
             <View style={styles.profileImageContainer}>
-              <View style={styles.profileImageCircle}>
+              <View style={[styles.profileImageCircle, { backgroundColor: theme.colors.primary, borderColor: theme.colors.onPrimary }]}>
                 {PROFILE_DATA.profileImageUrl ? (
                   <Image
                     source={{ uri: PROFILE_DATA.profileImageUrl }}
@@ -103,7 +155,7 @@ const AchievementsScreen = () => {
                   />
                 ) : (
                   <View style={styles.profileImagePlaceholder}>
-                    <ThemedText style={styles.profileInitial} font="manrope" weight="bold">
+                    <ThemedText style={[styles.profileInitial, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                       O
                     </ThemedText>
                   </View>
@@ -113,53 +165,60 @@ const AchievementsScreen = () => {
 
             {/* Biography */}
             <View style={styles.biographyContainer}>
-              <ThemedText style={styles.biographyText} font="manrope" weight="regular">
+              <ThemedText style={[styles.biographyText, { color: theme.colors.text }]} font="manrope" weight="regular">
                 {PROFILE_DATA.biography}
               </ThemedText>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Achievements List */}
         <View style={styles.achievementsList}>
-          {ACHIEVEMENTS_DATA.map((achievement) => (
-            <TouchableOpacity
+          {ACHIEVEMENTS_DATA.map((achievement, index) => (
+            <Animated.View
               key={achievement.id}
-              style={styles.achievementCard}
-              onPress={() => handleAchievementPress(achievement)}
-              activeOpacity={0.7}
+              style={{
+                opacity: cardAnimations[index].opacity,
+                transform: [{ translateY: cardAnimations[index].translateY }],
+              }}
             >
-              {/* Left Side - Thumbnail with Overlay */}
-              <View style={styles.thumbnailContainer}>
-                {achievement.thumbnailUrl ? (
-                  <Image
-                    source={{ uri: achievement.thumbnailUrl }}
-                    style={styles.thumbnail}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.thumbnailPlaceholder}>
-                    <Ionicons name="image-outline" size={32} color="#555" />
+              <TouchableOpacity
+                style={[styles.achievementCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+                onPress={() => handleAchievementPress(achievement)}
+                activeOpacity={0.7}
+              >
+                {/* Left Side - Thumbnail with Overlay */}
+                <View style={[styles.thumbnailContainer, { backgroundColor: theme.colors.background }]}>
+                  {achievement.thumbnailUrl ? (
+                    <Image
+                      source={{ uri: achievement.thumbnailUrl }}
+                      style={styles.thumbnail}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.thumbnailPlaceholder, { backgroundColor: theme.colors.surface }]}>
+                      <Ionicons name="image-outline" size={32} color={theme.colors.textMuted} />
+                    </View>
+                  )}
+                  {/* Red Overlay with Text */}
+                  <View style={[styles.thumbnailOverlay, { backgroundColor: `${theme.colors.primary}D9` }]}>
+                    <ThemedText style={[styles.overlayText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
+                      {achievement.overlayText}
+                    </ThemedText>
                   </View>
-                )}
-                {/* Red Overlay with Text */}
-                <View style={styles.thumbnailOverlay}>
-                  <ThemedText style={styles.overlayText} font="manrope" weight="bold">
-                    {achievement.overlayText}
+                </View>
+
+                {/* Middle - Title */}
+                <View style={styles.achievementTitleContainer}>
+                  <ThemedText style={[styles.achievementTitle, { color: theme.colors.text }]} font="manrope" weight="regular">
+                    {achievement.title}
                   </ThemedText>
                 </View>
-              </View>
 
-              {/* Middle - Title */}
-              <View style={styles.achievementTitleContainer}>
-                <ThemedText style={styles.achievementTitle} font="manrope" weight="regular">
-                  {achievement.title}
-                </ThemedText>
-              </View>
-
-              {/* Right Side - Chevron */}
-              <Ionicons name="chevron-forward" size={24} color="#E53E3E" />
-            </TouchableOpacity>
+                {/* Right Side - Chevron */}
+                <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
+              </TouchableOpacity>
+            </Animated.View>
           ))}
         </View>
       </ScrollView>
@@ -170,7 +229,6 @@ const AchievementsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -179,7 +237,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -193,7 +250,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -213,7 +269,6 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 24,
-    color: '#FFFFFF',
     marginBottom: 16,
   },
   profileContent: {
@@ -227,9 +282,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#E53E3E',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -246,14 +299,12 @@ const styles = StyleSheet.create({
   },
   profileInitial: {
     fontSize: 40,
-    color: '#FFFFFF',
   },
   biographyContainer: {
     flex: 1,
   },
   biographyText: {
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 22,
   },
   // Achievements List Styles
@@ -263,11 +314,9 @@ const styles = StyleSheet.create({
   achievementCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#444',
   },
   thumbnailContainer: {
     width: 100,
@@ -275,7 +324,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#1A1A1A',
     marginRight: 12,
   },
   thumbnail: {
@@ -285,7 +333,6 @@ const styles = StyleSheet.create({
   thumbnailPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2A2A2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -294,14 +341,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(229, 62, 62, 0.85)',
     paddingVertical: 6,
     paddingHorizontal: 8,
     alignItems: 'center',
   },
   overlayText: {
     fontSize: 10,
-    color: '#FFFFFF',
     textAlign: 'center',
   },
   achievementTitleContainer: {
@@ -309,7 +354,6 @@ const styles = StyleSheet.create({
   },
   achievementTitle: {
     fontSize: 14,
-    color: '#FFFFFF',
   },
 });
 
