@@ -1,4 +1,4 @@
-export const API_BASE_URL = "http://10.232.246.151:8000/api";
+export const API_BASE_URL = "http://10.62.36.10:8000/api";
 
 // Minimal endpoints to start; add more as the app grows
 const API_ENDPOINTS = {

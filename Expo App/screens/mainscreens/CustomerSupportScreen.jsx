@@ -68,7 +68,16 @@ const CustomerSupportScreen = () => {
       <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View 
+        style={[
+          styles.header,
+          {
+            borderBottomColor: theme.colors.border,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -84,7 +93,7 @@ const CustomerSupportScreen = () => {
           </ThemedText>
         </View>
         <View style={styles.rightSpacer} />
-      </View>
+      </Animated.View>
 
       {/* Main Content */}
       <View style={styles.content}>
@@ -99,20 +108,22 @@ const CustomerSupportScreen = () => {
             style={[
               styles.startChatButton,
               {
-                backgroundColor: mode === 'dark' ? theme.colors.surface : '#E5E5E5',
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                borderWidth: 1,
               },
             ]}
             onPress={handleStartChat}
             activeOpacity={0.8}
           >
             {/* Headset Icon */}
-            <Ionicons name="headset" size={28} color={mode === 'dark' ? theme.colors.text : '#2A2A2A'} />
+            <Ionicons name="headset" size={28} color={theme.colors.primary} />
             
             {/* Start Chat Text */}
             <ThemedText
               style={[
                 styles.startChatText,
-                { color: mode === 'dark' ? theme.colors.text : '#2A2A2A' },
+                { color: theme.colors.text },
               ]}
               font="manrope"
               weight="bold"
@@ -136,6 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: 1,
   },
   backButton: {
     width: 48,

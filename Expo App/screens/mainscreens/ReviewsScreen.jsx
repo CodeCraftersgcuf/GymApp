@@ -9,10 +9,12 @@ import {
   Dimensions,
   Image,
   Linking,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -97,9 +99,16 @@ const WHATSAPP_NUMBER = '03162989178';
 const ReviewsScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const scrollViewRef = useRef(null);
   const isScrollingRef = useRef(false);
+  
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const carouselOpacity = useRef(new Animated.Value(0)).current;
 
   // Create infinite carousel data: [lastItem, ...items, firstItem]
   const extendedData = [
@@ -121,6 +130,29 @@ const ReviewsScreen = () => {
         });
       }, 100);
     }
+  }, []);
+  
+  // Entrance animations
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(carouselOpacity, {
+        toValue: 1,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const handleCarouselScroll = (event) => {
@@ -178,6 +210,20 @@ const ReviewsScreen = () => {
   };
 
   const handleWatchTestimonials = () => {
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
     // TODO: Navigate to testimonials video screen or open video
     const currentTransformation = CLIENT_TRANSFORMATIONS[activeCarouselIndex];
     if (currentTransformation?.videoUrl) {
@@ -193,25 +239,34 @@ const ReviewsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View 
+        style={[
+          styles.header,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+            borderBottomColor: theme.colors.border,
+          }
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Client Reviews
           </ThemedText>
         </View>
         <View style={styles.rightSpacer} />
-      </View>
+      </Animated.View>
 
       {/* Main Content */}
       <ScrollView
@@ -220,7 +275,14 @@ const ReviewsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Transformation Carousel */}
-        <View style={styles.carouselContainer}>
+        <Animated.View 
+          style={[
+            styles.carouselContainer,
+            {
+              opacity: carouselOpacity,
+            }
+          ]}
+        >
           <ScrollView
             ref={scrollViewRef}
             horizontal
@@ -237,7 +299,7 @@ const ReviewsScreen = () => {
               const thumbnailUrl = getThumbnailUrl(transformation);
               return (
                 <View key={`carousel-${transformation.id}-${index}`} style={styles.carouselItem}>
-                  <View style={styles.transformationCard}>
+                  <View style={[styles.transformationCard, { backgroundColor: theme.colors.surface }]}>
                     {/* Video Thumbnail Background */}
                     {thumbnailUrl && (
                       <Image
@@ -251,42 +313,42 @@ const ReviewsScreen = () => {
                     <View style={styles.overlayContent}>
                       {/* Top Left - PAKFIT Logo */}
                       <View style={styles.logoContainer}>
-                        <View style={styles.logoCircle}>
-                          <ThemedText style={styles.logoText} font="manrope" weight="bold">
+                        <View style={[styles.logoCircle, { backgroundColor: theme.colors.primary }]}>
+                          <ThemedText style={[styles.logoText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                             F
                           </ThemedText>
                         </View>
-                        <ThemedText style={styles.pakfitText} font="oleo" weight="bold">
+                        <ThemedText style={[styles.pakfitText, { color: theme.colors.text }]} font="oleo" weight="bold">
                           PAKFIT
                         </ThemedText>
                       </View>
 
                       {/* Left Side - Text Details */}
                       <View style={styles.textDetailsContainer}>
-                        <ThemedText style={styles.megaText} font="manrope" weight="bold">
+                        <ThemedText style={[styles.megaText, { color: theme.colors.primary }]} font="manrope" weight="bold">
                           {transformation.megaText}
                         </ThemedText>
-                        <ThemedText style={styles.fatLossText} font="manrope" weight="bold">
+                        <ThemedText style={[styles.fatLossText, { color: theme.colors.text }]} font="manrope" weight="bold">
                           {transformation.fatLossText}
                         </ThemedText>
                         
                         <View style={styles.detailsRow}>
-                          <Ionicons name="scale-outline" size={16} color="#FFFFFF" />
-                          <ThemedText style={styles.detailText} font="manrope" weight="regular">
+                          <Ionicons name="scale-outline" size={16} color={theme.colors.text} />
+                          <ThemedText style={[styles.detailText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             {transformation.weightBefore} to {transformation.weightAfter}
                           </ThemedText>
                         </View>
                         
                         <View style={styles.detailsRow}>
-                          <Ionicons name="time-outline" size={16} color="#FFFFFF" />
-                          <ThemedText style={styles.detailText} font="manrope" weight="regular">
+                          <Ionicons name="time-outline" size={16} color={theme.colors.text} />
+                          <ThemedText style={[styles.detailText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             {transformation.duration}
                           </ThemedText>
                         </View>
                         
                         <View style={styles.detailsRow}>
-                          <Ionicons name="ban-outline" size={16} color="#FFFFFF" />
-                          <ThemedText style={styles.detailText} font="manrope" weight="regular">
+                          <Ionicons name="ban-outline" size={16} color={theme.colors.text} />
+                          <ThemedText style={[styles.detailText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             NO GYM
                           </ThemedText>
                         </View>
@@ -295,26 +357,26 @@ const ReviewsScreen = () => {
                       {/* Right Side - Before & After Images */}
                       <View style={styles.imagesContainer}>
                         <View style={styles.beforeAfterContainer}>
-                          <View style={styles.imagePlaceholder}>
-                            <ThemedText style={styles.imageLabel} font="manrope" weight="regular">
+                          <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                            <ThemedText style={[styles.imageLabel, { color: theme.colors.text }]} font="manrope" weight="regular">
                               Before
                             </ThemedText>
-                            <Ionicons name="person" size={40} color="#999" />
+                            <Ionicons name="person" size={40} color={theme.colors.textMuted} />
                           </View>
-                          <View style={styles.imagePlaceholder}>
-                            <ThemedText style={styles.imageLabel} font="manrope" weight="regular">
+                          <View style={[styles.imagePlaceholder, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                            <ThemedText style={[styles.imageLabel, { color: theme.colors.text }]} font="manrope" weight="regular">
                               After
                             </ThemedText>
-                            <Ionicons name="person" size={40} color="#999" />
+                            <Ionicons name="person" size={40} color={theme.colors.textMuted} />
                           </View>
                         </View>
                       </View>
                     </View>
 
                     {/* Bottom Section - Footer */}
-                    <View style={styles.footerSection}>
-                      <View style={styles.footerLine} />
-                      <ThemedText style={styles.footerText} font="manrope" weight="regular">
+                    <View style={[styles.footerSection, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.primary }]}>
+                      <View style={[styles.footerLine, { backgroundColor: theme.colors.primary }]} />
+                      <ThemedText style={[styles.footerText, { color: theme.colors.text }]} font="manrope" weight="regular">
                         Pakistan's 1st Fitness App
                       </ThemedText>
                       
@@ -324,8 +386,8 @@ const ReviewsScreen = () => {
                           onPress={() => handleSocialMediaPress('phone')}
                           activeOpacity={0.7}
                         >
-                          <Ionicons name="call-outline" size={14} color="#FFFFFF" />
-                          <ThemedText style={styles.socialText} font="manrope" weight="regular">
+                          <Ionicons name="call-outline" size={14} color={theme.colors.text} />
+                          <ThemedText style={[styles.socialText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             PAKFIT.pk
                           </ThemedText>
                         </TouchableOpacity>
@@ -335,8 +397,8 @@ const ReviewsScreen = () => {
                           onPress={() => handleSocialMediaPress('instagram')}
                           activeOpacity={0.7}
                         >
-                          <Ionicons name="logo-instagram" size={14} color="#FFFFFF" />
-                          <ThemedText style={styles.socialText} font="manrope" weight="regular">
+                          <Ionicons name="logo-instagram" size={14} color={theme.colors.text} />
+                          <ThemedText style={[styles.socialText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             Pakfit.pk
                           </ThemedText>
                         </TouchableOpacity>
@@ -346,8 +408,8 @@ const ReviewsScreen = () => {
                           onPress={() => handleSocialMediaPress('facebook')}
                           activeOpacity={0.7}
                         >
-                          <Ionicons name="logo-facebook" size={14} color="#FFFFFF" />
-                          <ThemedText style={styles.socialText} font="manrope" weight="regular">
+                          <Ionicons name="logo-facebook" size={14} color={theme.colors.text} />
+                          <ThemedText style={[styles.socialText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             Pakfit.Ltb
                           </ThemedText>
                         </TouchableOpacity>
@@ -357,8 +419,8 @@ const ReviewsScreen = () => {
                           onPress={() => handleSocialMediaPress('youtube')}
                           activeOpacity={0.7}
                         >
-                          <Ionicons name="logo-youtube" size={14} color="#FFFFFF" />
-                          <ThemedText style={styles.socialText} font="manrope" weight="regular">
+                          <Ionicons name="logo-youtube" size={14} color={theme.colors.text} />
+                          <ThemedText style={[styles.socialText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             Pakfit.Ltb
                           </ThemedText>
                         </TouchableOpacity>
@@ -368,8 +430,8 @@ const ReviewsScreen = () => {
                           onPress={handleWhatsAppPress}
                           activeOpacity={0.7}
                         >
-                          <Ionicons name="logo-whatsapp" size={14} color="#FFFFFF" />
-                          <ThemedText style={styles.socialText} font="manrope" weight="regular">
+                          <Ionicons name="logo-whatsapp" size={14} color={theme.colors.text} />
+                          <ThemedText style={[styles.socialText, { color: theme.colors.text }]} font="manrope" weight="regular">
                             {WHATSAPP_NUMBER}
                           </ThemedText>
                         </TouchableOpacity>
@@ -384,37 +446,53 @@ const ReviewsScreen = () => {
           {/* Carousel Pagination Dots */}
           <View style={styles.paginationContainer}>
             {CLIENT_TRANSFORMATIONS.map((_, index) => (
-              <View
+              <Animated.View
                 key={index}
                 style={[
                   styles.paginationDot,
+                  {
+                    backgroundColor: activeCarouselIndex === index ? theme.colors.primary : theme.colors.border,
+                  },
                   activeCarouselIndex === index && styles.paginationDotActive,
                 ]}
               />
             ))}
           </View>
-        </View>
+        </Animated.View>
 
         {/* Call to Action Text */}
-        <View style={styles.callToActionContainer}>
-          <ThemedText style={styles.callToActionText} font="manrope" weight="regular">
+        <Animated.View 
+          style={[
+            styles.callToActionContainer,
+            {
+              opacity: fadeAnim,
+            }
+          ]}
+        >
+          <ThemedText style={[styles.callToActionText, { color: theme.colors.text }]} font="manrope" weight="regular">
             To watch our successful clients results,
           </ThemedText>
-          <ThemedText style={styles.callToActionRed} font="manrope" weight="regular">
+          <ThemedText style={[styles.callToActionRed, { color: theme.colors.primary }]} font="manrope" weight="regular">
             click below
           </ThemedText>
-        </View>
+        </Animated.View>
 
         {/* Watch Testimonials Button */}
-        <TouchableOpacity
-          style={styles.watchButton}
-          onPress={handleWatchTestimonials}
-          activeOpacity={0.8}
+        <Animated.View
+          style={{
+            transform: [{ scale: buttonScale }],
+          }}
         >
-          <ThemedText style={styles.watchButtonText} font="manrope" weight="bold">
-            Watch Testimonials
-          </ThemedText>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.watchButton, { backgroundColor: theme.colors.primary }]}
+            onPress={handleWatchTestimonials}
+            activeOpacity={1}
+          >
+            <ThemedText style={[styles.watchButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
+              Watch Testimonials
+            </ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -423,7 +501,6 @@ const ReviewsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -432,7 +509,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -446,7 +522,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -475,7 +550,6 @@ const styles = StyleSheet.create({
   },
   transformationCard: {
     flex: 1,
-    backgroundColor: '#2A2A2A',
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
@@ -503,18 +577,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E53E3E',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
   logoText: {
     fontSize: 18,
-    color: '#FFFFFF',
   },
   pakfitText: {
     fontSize: 16,
-    color: '#FFFFFF',
     letterSpacing: 1,
   },
   textDetailsContainer: {
@@ -523,12 +594,10 @@ const styles = StyleSheet.create({
   },
   megaText: {
     fontSize: 32,
-    color: '#E53E3E',
     marginBottom: 4,
   },
   fatLossText: {
     fontSize: 28,
-    color: '#FFFFFF',
     marginBottom: 16,
   },
   detailsRow: {
@@ -538,7 +607,6 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: '#FFFFFF',
     marginLeft: 8,
   },
   imagesContainer: {
@@ -553,16 +621,13 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: 70,
     height: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#444',
   },
   imageLabel: {
     fontSize: 10,
-    color: '#FFFFFF',
     marginBottom: 8,
   },
   footerSection: {
@@ -570,19 +635,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E53E3E',
   },
   footerLine: {
     height: 1,
-    backgroundColor: '#E53E3E',
     marginBottom: 8,
   },
   footerText: {
     fontSize: 12,
-    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -600,7 +661,6 @@ const styles = StyleSheet.create({
   },
   socialText: {
     fontSize: 10,
-    color: '#FFFFFF',
     marginLeft: 4,
   },
   paginationContainer: {
@@ -614,10 +674,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#555',
   },
   paginationDotActive: {
-    backgroundColor: '#E53E3E',
     width: 24,
   },
   callToActionContainer: {
@@ -626,17 +684,14 @@ const styles = StyleSheet.create({
   },
   callToActionText: {
     fontSize: 14,
-    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 4,
   },
   callToActionRed: {
     fontSize: 14,
-    color: '#E53E3E',
     textAlign: 'center',
   },
   watchButton: {
-    backgroundColor: '#E53E3E',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -646,7 +701,6 @@ const styles = StyleSheet.create({
   },
   watchButtonText: {
     fontSize: 16,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
 });

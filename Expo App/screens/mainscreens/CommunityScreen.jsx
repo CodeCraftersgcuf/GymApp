@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,13 +7,18 @@ import {
   StatusBar,
   Modal,
   ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Dummy URLs - will be replaced with backend links later
 // Using desktop URLs to potentially avoid QUIC protocol issues
@@ -25,12 +30,50 @@ const MODAL_STORAGE_KEY = '@pakfit_community_modal_dismissed';
 const CommunityScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
   const [activeTab, setActiveTab] = useState('Facebook');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const tabUnderlineAnim = useRef(new Animated.Value(activeTab === 'Facebook' ? 0 : 1)).current;
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+  
+  useEffect(() => {
+    Animated.spring(tabUnderlineAnim, {
+      toValue: activeTab === 'Facebook' ? 0 : 1,
+      tension: 100,
+      friction: 8,
+      useNativeDriver: false,
+    }).start();
+  }, [activeTab]);
 
   // Check if modal has been dismissed before
   useEffect(() => {
@@ -117,92 +160,155 @@ const CommunityScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View 
+        style={[
+          styles.header,
+          {
+            borderBottomColor: theme.colors.border,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Community
           </ThemedText>
         </View>
         <View style={styles.rightSpacer} />
-      </View>
+      </Animated.View>
 
       {/* Tabs */}
-      <View style={styles.tabsContainer}>
+      <Animated.View 
+        style={[
+          styles.tabsContainer,
+          {
+            borderBottomColor: theme.colors.border,
+            opacity: fadeAnim,
+          }
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'Facebook' && styles.tabActive]}
+          style={styles.tab}
           onPress={() => setActiveTab('Facebook')}
           activeOpacity={0.7}
         >
           <ThemedText
             style={[
               styles.tabText,
-              activeTab === 'Facebook' && styles.tabTextActive,
+              {
+                color: activeTab === 'Facebook' ? theme.colors.primary : theme.colors.textSecondary,
+              }
             ]}
             font="manrope"
-            weight="regular"
+            weight={activeTab === 'Facebook' ? "semibold" : "regular"}
           >
             Facebook
           </ThemedText>
-          {activeTab === 'Facebook' && <View style={styles.tabUnderline} />}
+          <Animated.View 
+            style={[
+              styles.tabUnderline,
+              {
+                backgroundColor: theme.colors.primary,
+                opacity: tabUnderlineAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 0],
+                }),
+                transform: [{
+                  translateX: tabUnderlineAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, SCREEN_WIDTH / 2],
+                  }),
+                }],
+              }
+            ]} 
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'Instagram' && styles.tabActive]}
+          style={styles.tab}
           onPress={() => setActiveTab('Instagram')}
           activeOpacity={0.7}
         >
           <ThemedText
             style={[
               styles.tabText,
-              activeTab === 'Instagram' && styles.tabTextActive,
+              {
+                color: activeTab === 'Instagram' ? theme.colors.primary : theme.colors.textSecondary,
+              }
             ]}
             font="manrope"
-            weight="regular"
+            weight={activeTab === 'Instagram' ? "semibold" : "regular"}
           >
             Instagram
           </ThemedText>
-          {activeTab === 'Instagram' && <View style={styles.tabUnderline} />}
+          <Animated.View 
+            style={[
+              styles.tabUnderline,
+              {
+                backgroundColor: theme.colors.primary,
+                opacity: tabUnderlineAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
+                }),
+                transform: [{
+                  translateX: tabUnderlineAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-SCREEN_WIDTH / 2, 0],
+                  }),
+                }],
+              }
+            ]} 
+          />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* WebView Container */}
-      <View style={styles.webViewContainer}>
+      <View style={[styles.webViewContainer, { backgroundColor: theme.colors.surface }]}>
         {isLoading && !hasError && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#E53E3E" />
+          <View style={[styles.loadingContainer, { backgroundColor: theme.colors.surface }]}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         )}
         
         {hasError ? (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={64} color="#E53E3E" />
-            <ThemedText style={styles.errorTitle} font="manrope" weight="bold">
+          <Animated.View 
+            style={[
+              styles.errorContainer,
+              {
+                backgroundColor: theme.colors.surface,
+                opacity: fadeAnim,
+              }
+            ]}
+          >
+            <Ionicons name="alert-circle-outline" size={64} color={theme.colors.error} />
+            <ThemedText style={[styles.errorTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
               Unable to Load Content
             </ThemedText>
-            <ThemedText style={styles.errorMessage} font="manrope" weight="regular">
+            <ThemedText style={[styles.errorMessage, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
               {errorMessage}
             </ThemedText>
             <TouchableOpacity
-              style={styles.retryButton}
+              style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
               onPress={handleRetry}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.retryButtonText} font="manrope" weight="bold">
+              <ThemedText style={[styles.retryButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                 Retry
               </ThemedText>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         ) : (
           <WebView
             key={`${activeTab}-${refreshKey}`} // Force reload when tab changes or retry is pressed
@@ -235,65 +341,80 @@ const CommunityScreen = () => {
         onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: theme.colors.surface,
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              }
+            ]}
+          >
             {/* Close Button */}
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={handleCloseModal}
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
 
             {/* Logo */}
             <View style={styles.modalLogoContainer}>
-              <View style={styles.modalLogoCircle}>
+              <View style={[styles.modalLogoCircle, { backgroundColor: theme.colors.textInverse }]}>
                 <View style={styles.modalLogoInner}>
-                  <View style={styles.modalLogoIcon}>
-                    <ThemedText style={styles.modalLogoText} font="manrope" weight="bold">
+                  <View style={[styles.modalLogoIcon, { backgroundColor: theme.colors.primary }]}>
+                    <ThemedText style={[styles.modalLogoText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                       IF
                     </ThemedText>
                   </View>
-                  <ThemedText style={styles.modalPakfitText} font="oleo" weight="bold">
+                  <ThemedText style={[styles.modalPakfitText, { color: theme.colors.onPrimary }]} font="oleo" weight="bold">
                     PAKFIT
                   </ThemedText>
                 </View>
                 {/* Facebook Icon Overlay */}
-                <View style={styles.facebookIconOverlay}>
-                  <Ionicons name="logo-facebook" size={20} color="#FFFFFF" />
+                <View style={[styles.facebookIconOverlay, { borderColor: theme.colors.surface }]}>
+                  <Ionicons name="logo-facebook" size={20} color={theme.colors.onPrimary} />
                 </View>
               </View>
             </View>
 
             {/* Text Content */}
-            <ThemedText style={styles.modalTitle} font="manrope" weight="bold">
+            <ThemedText style={[styles.modalTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
               See more from PakFit
             </ThemedText>
-            <ThemedText style={styles.modalDescription} font="manrope" weight="regular">
+            <ThemedText style={[styles.modalDescription, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
               Log in to get all the details and all the updates from Pages you follow.
             </ThemedText>
 
             {/* Buttons */}
             <TouchableOpacity
-              style={styles.modalLoginButton}
+              style={[styles.modalLoginButton, { backgroundColor: '#1877F2' }]}
               onPress={handleLoginPress}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.modalLoginButtonText} font="manrope" weight="bold">
+              <ThemedText style={[styles.modalLoginButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                 Log in
               </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalCreateAccountButton}
+              style={[
+                styles.modalCreateAccountButton,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderColor: theme.colors.border,
+                }
+              ]}
               onPress={handleCreateAccountPress}
               activeOpacity={0.8}
             >
-              <ThemedText style={styles.modalCreateAccountButtonText} font="manrope" weight="regular">
+              <ThemedText style={[styles.modalCreateAccountButtonText, { color: theme.colors.text }]} font="manrope" weight="regular">
                 Create new account
               </ThemedText>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -303,7 +424,6 @@ const CommunityScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -312,7 +432,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -326,7 +445,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -335,7 +453,6 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   tab: {
     flex: 1,
@@ -344,15 +461,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  tabActive: {
-    // Active tab styling handled by text color and underline
-  },
   tabText: {
     fontSize: 16,
-    color: '#FFFFFF',
-  },
-  tabTextActive: {
-    color: '#E53E3E',
   },
   tabUnderline: {
     position: 'absolute',
@@ -360,11 +470,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: '#E53E3E',
   },
   webViewContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   webView: {
     flex: 1,
@@ -375,7 +483,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -384,30 +491,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     padding: 20,
   },
   errorTitle: {
     fontSize: 20,
-    color: '#000000',
     marginTop: 16,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 14,
-    color: '#666666',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
   },
   retryButton: {
-    backgroundColor: '#E53E3E',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
   },
   // Modal Styles
@@ -419,7 +521,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 24,
     width: '100%',
@@ -443,7 +544,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -456,18 +556,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E53E3E',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   modalLogoText: {
     fontSize: 20,
-    color: '#FFFFFF',
   },
   modalPakfitText: {
     fontSize: 14,
-    color: '#FFFFFF',
     letterSpacing: 1,
   },
   facebookIconOverlay: {
@@ -481,23 +578,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
   },
   modalTitle: {
     fontSize: 18,
-    color: '#000000',
     marginBottom: 12,
     textAlign: 'center',
   },
   modalDescription: {
     fontSize: 14,
-    color: '#666666',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
   },
   modalLoginButton: {
-    backgroundColor: '#1877F2',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 32,
@@ -507,21 +600,17 @@ const styles = StyleSheet.create({
   },
   modalLoginButtonText: {
     fontSize: 16,
-    color: '#FFFFFF',
   },
   modalCreateAccountButton: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDDDDD',
   },
   modalCreateAccountButtonText: {
     fontSize: 16,
-    color: '#000000',
   },
 });
 

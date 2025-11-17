@@ -10,11 +10,13 @@ import {
   Linking,
   Share,
   Alert,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -55,10 +57,47 @@ const VideoDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { theme, mode } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const webViewRef = useRef(null);
   const errorTimeoutRef = useRef(null);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const playButtonScale = useRef(new Animated.Value(1)).current;
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+  
+  const handlePlayPress = () => {
+    Animated.sequence([
+      Animated.spring(playButtonScale, {
+        toValue: 0.9,
+        useNativeDriver: true,
+      }),
+      Animated.spring(playButtonScale, {
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    setVideoError(false);
+    setIsPlaying(true);
+  };
 
   // JavaScript to inject for detecting YouTube errors
   const injectedJavaScript = `
@@ -186,27 +225,36 @@ const VideoDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle={mode === 'dark' ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View 
+        style={[
+          styles.header,
+          {
+            borderBottomColor: theme.colors.border,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <View style={styles.backButtonCircle}>
-            <Ionicons name="chevron-back" size={20} color="#000000" />
+          <View style={[styles.backButtonCircle, { backgroundColor: theme.colors.surfaceAlt }]}>
+            <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
           </View>
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <ThemedText style={styles.headerTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.headerTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             {finalTitle.split(' | ')[0] || finalTitle}
           </ThemedText>
         </View>
         <View style={styles.rightSpacer} />
-      </View>
+      </Animated.View>
 
       <ScrollView
         style={styles.scrollView}
@@ -222,14 +270,11 @@ const VideoDetailScreen = () => {
                 <TouchableOpacity
                   style={styles.videoThumbnailContainer}
                   activeOpacity={1}
-                  onPress={() => {
-                    setVideoError(false); // Reset error state when trying to play
-                    setIsPlaying(true);
-                  }}
+                  onPress={handlePlayPress}
                 >
                   {/* Thumbnail Image Background */}
-                  <View style={styles.thumbnailBackground}>
-                    <ThemedText style={styles.thumbnailPlaceholderText} font="manrope" weight="regular">
+                  <View style={[styles.thumbnailBackground, { backgroundColor: theme.colors.surfaceElevated }]}>
+                    <ThemedText style={[styles.thumbnailPlaceholderText, { color: theme.colors.textMuted }]} font="manrope" weight="regular">
                       {finalWorkoutType}
                     </ThemedText>
                   </View>
@@ -238,70 +283,83 @@ const VideoDetailScreen = () => {
                   <View style={styles.videoOverlay}>
                     {/* PAKFIT Logo - Top Left */}
                     <View style={styles.logoContainer}>
-                      <View style={styles.logoCircle}>
-                        <ThemedText style={styles.logoText} font="manrope" weight="bold">
+                      <View style={[styles.logoCircle, { backgroundColor: theme.colors.primary }]}>
+                        <ThemedText style={[styles.logoText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
                           F
                         </ThemedText>
                       </View>
-                      <ThemedText style={styles.pakfitText} font="oleo" weight="bold">
+                      <ThemedText style={[styles.pakfitText, { color: theme.colors.textInverse }]} font="oleo" weight="bold">
                         PAKFIT
                       </ThemedText>
                     </View>
 
                     {/* Workout Type - Center */}
                     <View style={styles.overlayCenterContent}>
-                      <ThemedText style={styles.workoutTypeText} font="manrope" weight="bold">
+                      <ThemedText style={[styles.workoutTypeText, { color: theme.colors.textInverse }]} font="manrope" weight="bold">
                         {finalWorkoutType}
                       </ThemedText>
-                      <View style={styles.episodeBanner}>
-                        <ThemedText style={styles.episodeText} font="manrope" weight="medium">
+                      <View style={[styles.episodeBanner, { backgroundColor: theme.colors.primary }]}>
+                        <ThemedText style={[styles.episodeText, { color: theme.colors.onPrimary }]} font="manrope" weight="medium">
                           {finalEpisode}
                         </ThemedText>
                       </View>
-                      <ThemedText style={styles.seriesText} font="manrope" weight="regular">
+                      <ThemedText style={[styles.seriesText, { color: theme.colors.textInverse }]} font="manrope" weight="regular">
                         BEGINNERS WORKOUT SERIES
                       </ThemedText>
                     </View>
 
                     {/* Play Button - Center */}
-                    <View style={styles.playButtonContainer}>
-                      <View style={styles.playButtonCircle}>
-                        <Ionicons name="play" size={40} color="#FFFFFF" />
+                    <Animated.View 
+                      style={[
+                        styles.playButtonContainer,
+                        { transform: [{ scale: playButtonScale }] }
+                      ]}
+                    >
+                      <View style={[styles.playButtonCircle, { backgroundColor: theme.colors.primary + 'E6' }]}>
+                        <Ionicons name="play" size={40} color={theme.colors.onPrimary} />
                       </View>
-                    </View>
+                    </Animated.View>
                   </View>
                 </TouchableOpacity>
                              ) : videoError ? (
                  /* Error fallback */
-                 <View style={styles.videoPlaceholder}>
-                   <Ionicons name="alert-circle" size={48} color="#E53E3E" />
-                   <ThemedText style={styles.placeholderText} font="manrope" weight="regular">
+                 <Animated.View 
+                   style={[
+                     styles.videoPlaceholder,
+                     {
+                       backgroundColor: theme.colors.surface,
+                       opacity: fadeAnim,
+                     }
+                   ]}
+                 >
+                   <Ionicons name="alert-circle" size={48} color={theme.colors.error} />
+                   <ThemedText style={[styles.placeholderText, { color: theme.colors.text }]} font="manrope" weight="regular">
                      Unable to play video
                    </ThemedText>
-                   <ThemedText style={styles.errorSubtext} font="manrope" weight="regular">
+                   <ThemedText style={[styles.errorSubtext, { color: theme.colors.textSecondary }]} font="manrope" weight="regular">
                      This video may not allow embedding.
                    </ThemedText>
                   <TouchableOpacity
-                    style={styles.retryButton}
+                    style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
                     onPress={() => {
                       setVideoError(false);
                       setIsPlaying(true);
                     }}
                   >
-                    <ThemedText style={styles.retryButtonText} font="manrope" weight="medium">
+                    <ThemedText style={[styles.retryButtonText, { color: theme.colors.onPrimary }]} font="manrope" weight="medium">
                       Retry
                     </ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.youtubeButtonFallback}
+                    style={[styles.youtubeButtonFallback, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}
                     onPress={handleWatchOnYouTube}
                   >
                     <Ionicons name="logo-youtube" size={20} color="#FF0000" />
-                    <ThemedText style={styles.youtubeButtonText} font="manrope" weight="medium">
+                    <ThemedText style={[styles.youtubeButtonText, { color: theme.colors.text }]} font="manrope" weight="medium">
                       Open in YouTube
                     </ThemedText>
                   </TouchableOpacity>
-                </View>
+                </Animated.View>
               ) : (
                 /* Video Player (shown when playing) */
                 <WebView
@@ -337,9 +395,9 @@ const VideoDetailScreen = () => {
                     console.warn('WebView render error: ', errorName);
                     setVideoError(true);
                     return (
-                      <View style={styles.videoPlaceholder}>
-                        <Ionicons name="alert-circle" size={48} color="#E53E3E" />
-                        <ThemedText style={styles.placeholderText} font="manrope" weight="regular">
+                      <View style={[styles.videoPlaceholder, { backgroundColor: theme.colors.surface }]}>
+                        <Ionicons name="alert-circle" size={48} color={theme.colors.error} />
+                        <ThemedText style={[styles.placeholderText, { color: theme.colors.text }]} font="manrope" weight="regular">
                           Video playback error
                         </ThemedText>
                       </View>
@@ -349,87 +407,130 @@ const VideoDetailScreen = () => {
               )}
             </>
           ) : (
-            <View style={styles.videoPlaceholder}>
-              <ThemedText style={styles.placeholderText} font="manrope" weight="regular">
+            <View style={[styles.videoPlaceholder, { backgroundColor: theme.colors.surface }]}>
+              <ThemedText style={[styles.placeholderText, { color: theme.colors.text }]} font="manrope" weight="regular">
                 Video unavailable
               </ThemedText>
             </View>
           )}
 
           {/* Video Controls Bar */}
-          <View style={styles.videoControlsBar}>
+          <Animated.View 
+            style={[
+              styles.videoControlsBar,
+              {
+                backgroundColor: theme.colors.surface,
+                borderTopColor: theme.colors.border,
+                opacity: fadeAnim,
+              }
+            ]}
+          >
             <TouchableOpacity
               onPress={handleShare}
               style={styles.controlButton}
               activeOpacity={0.7}
             >
-              <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+              <Ionicons name="share-outline" size={24} color={theme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleWatchOnYouTube}
-              style={styles.youtubeButton}
+              style={[styles.youtubeButton, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}
               activeOpacity={0.7}
             >
               <View style={styles.youtubeButtonContent}>
                 <Ionicons name="logo-youtube" size={20} color="#FF0000" />
-                <ThemedText style={styles.youtubeButtonText} font="manrope" weight="medium">
+                <ThemedText style={[styles.youtubeButtonText, { color: theme.colors.text }]} font="manrope" weight="medium">
                   Watch on YouTube
                 </ThemedText>
               </View>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
 
         {/* Video Title and Duration */}
-        <View style={styles.videoInfoContainer}>
-          <ThemedText style={styles.videoTitleText} font="manrope" weight="regular">
+        <Animated.View 
+          style={[
+            styles.videoInfoContainer,
+            {
+              backgroundColor: theme.colors.surface,
+              opacity: fadeAnim,
+            }
+          ]}
+        >
+          <ThemedText style={[styles.videoTitleText, { color: theme.colors.text }]} font="manrope" weight="regular">
             {finalTitle}
           </ThemedText>
           <View style={styles.durationContainer}>
-            <ThemedText style={styles.durationLabel} font="manrope" weight="regular">
+            <ThemedText style={[styles.durationLabel, { color: theme.colors.text }]} font="manrope" weight="regular">
               Duration :
             </ThemedText>
-            <ThemedText style={styles.durationValue} font="manrope" weight="medium">
+            <ThemedText style={[styles.durationValue, { color: theme.colors.primary }]} font="manrope" weight="medium">
               {' '}{finalDuration}
             </ThemedText>
           </View>
-        </View>
+        </Animated.View>
 
         {/* About Video Section */}
-        <View style={styles.aboutVideoContainer}>
-          <ThemedText style={styles.sectionTitle} font="manrope" weight="bold">
+        <Animated.View 
+          style={[
+            styles.aboutVideoContainer,
+            {
+              backgroundColor: theme.colors.surface,
+              opacity: fadeAnim,
+            }
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             About Video
           </ThemedText>
-          <ThemedText style={styles.descriptionText} font="manrope" weight="regular">
+          <ThemedText style={[styles.descriptionText, { color: theme.colors.text }]} font="manrope" weight="regular">
             {finalDescription}
           </ThemedText>
 
           {/* Important Points */}
-          <ThemedText style={styles.subsectionTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.subsectionTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Important Points to remember
           </ThemedText>
           {finalImportantPoints.map((point, index) => (
-            <View key={index} style={styles.bulletPointContainer}>
-              <View style={styles.bulletPoint} />
-              <ThemedText style={styles.bulletText} font="manrope" weight="regular">
+            <Animated.View 
+              key={index} 
+              style={[
+                styles.bulletPointContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateX: slideAnim }],
+                }
+              ]}
+            >
+              <View style={[styles.bulletPoint, { backgroundColor: theme.colors.primary }]} />
+              <ThemedText style={[styles.bulletText, { color: theme.colors.text }]} font="manrope" weight="regular">
                 {point}
               </ThemedText>
-            </View>
+            </Animated.View>
           ))}
 
           {/* Workout Schedule */}
-          <ThemedText style={styles.subsectionTitle} font="manrope" weight="bold">
+          <ThemedText style={[styles.subsectionTitle, { color: theme.colors.text }]} font="manrope" weight="bold">
             Workout Schedule:
           </ThemedText>
           {finalWorkoutSchedule.map((schedule, index) => (
-            <View key={index} style={styles.bulletPointContainer}>
-              <View style={styles.bulletPoint} />
-              <ThemedText style={styles.bulletText} font="manrope" weight="regular">
+            <Animated.View 
+              key={index} 
+              style={[
+                styles.bulletPointContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateX: slideAnim }],
+                }
+              ]}
+            >
+              <View style={[styles.bulletPoint, { backgroundColor: theme.colors.primary }]} />
+              <ThemedText style={[styles.bulletText, { color: theme.colors.text }]} font="manrope" weight="regular">
                 {schedule}
               </ThemedText>
-            </View>
+            </Animated.View>
           ))}
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -438,7 +539,6 @@ const VideoDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
   },
   header: {
     flexDirection: 'row',
@@ -447,7 +547,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   backButton: {
     width: 40,
@@ -459,7 +558,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#CCCCCC',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -469,7 +567,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   rightSpacer: {
@@ -485,7 +582,6 @@ const styles = StyleSheet.create({
   videoPlayerContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#000000',
     position: 'relative',
   },
   videoThumbnailContainer: {
@@ -496,13 +592,11 @@ const styles = StyleSheet.create({
   thumbnailBackground: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2A2A2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   thumbnailPlaceholderText: {
     fontSize: 24,
-    color: '#FFFFFF',
     opacity: 0.3,
   },
   videoPlayer: {
@@ -512,25 +606,21 @@ const styles = StyleSheet.create({
   videoPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2A2A2A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
     fontSize: 16,
-    color: '#FFFFFF',
     marginTop: 16,
     marginBottom: 8,
   },
   errorSubtext: {
     fontSize: 12,
-    color: '#999',
     marginBottom: 16,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
   retryButton: {
-    backgroundColor: '#E53E3E',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -539,17 +629,16 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 16,
-    color: '#FFFFFF',
   },
   youtubeButtonFallback: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A1A1A',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     gap: 8,
+    borderWidth: 1,
   },
   videoOverlay: {
     position: 'absolute',
@@ -571,17 +660,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E53E3E',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
     fontSize: 20,
-    color: '#FFFFFF',
   },
   pakfitText: {
     fontSize: 14,
-    color: '#FFFFFF',
     letterSpacing: 1,
   },
   overlayCenterContent: {
@@ -593,12 +679,10 @@ const styles = StyleSheet.create({
   },
   workoutTypeText: {
     fontSize: 32,
-    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 12,
   },
   episodeBanner: {
-    backgroundColor: '#E53E3E',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 4,
@@ -606,11 +690,9 @@ const styles = StyleSheet.create({
   },
   episodeText: {
     fontSize: 14,
-    color: '#FFFFFF',
   },
   seriesText: {
     fontSize: 12,
-    color: '#FFFFFF',
     textAlign: 'center',
   },
   playButtonContainer: {
@@ -623,7 +705,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(229, 62, 62, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingLeft: 4,
@@ -632,18 +713,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#2A2A2A',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderTopWidth: 1,
   },
   controlButton: {
     padding: 8,
   },
   youtubeButton: {
-    backgroundColor: '#1A1A1A',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
+    borderWidth: 1,
   },
   youtubeButtonContent: {
     flexDirection: 'row',
@@ -652,17 +733,14 @@ const styles = StyleSheet.create({
   },
   youtubeButtonText: {
     fontSize: 14,
-    color: '#FFFFFF',
   },
   // Video Info Styles
   videoInfoContainer: {
-    backgroundColor: '#2A2A2A',
     paddingHorizontal: 24,
     paddingVertical: 16,
   },
   videoTitleText: {
     fontSize: 16,
-    color: '#FFFFFF',
     marginBottom: 8,
     lineHeight: 24,
   },
@@ -672,15 +750,12 @@ const styles = StyleSheet.create({
   },
   durationLabel: {
     fontSize: 14,
-    color: '#FFFFFF',
   },
   durationValue: {
     fontSize: 14,
-    color: '#E53E3E',
   },
   // About Video Styles
   aboutVideoContainer: {
-    backgroundColor: '#2A2A2A',
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 20,
@@ -688,18 +763,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    color: '#FFFFFF',
     marginBottom: 16,
   },
   descriptionText: {
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 22,
     marginBottom: 20,
   },
   subsectionTitle: {
     fontSize: 16,
-    color: '#FFFFFF',
     marginBottom: 12,
     marginTop: 8,
   },
@@ -712,14 +784,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#FFFFFF',
     marginTop: 6,
     marginRight: 12,
   },
   bulletText: {
     flex: 1,
     fontSize: 14,
-    color: '#FFFFFF',
     lineHeight: 22,
   },
 });
