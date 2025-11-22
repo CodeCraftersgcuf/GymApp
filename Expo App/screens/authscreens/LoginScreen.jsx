@@ -15,15 +15,18 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../components/ThemeProvider";
 import ThemedText from "../../components/ThemedText";
+import { useLogin } from "../../api/hooks";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login: authLogin, isAuthenticated, isLoading: authLoading } = useAuth();
   const { theme, mode } = useTheme();
+  const loginMutation = useLogin();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -47,24 +50,41 @@ const LoginScreen = () => {
 
   // Redirect to MainApp if user is already authenticated (after loading completes)
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated) {
       // Navigate to MainApp in the parent navigator (RootNavigator)
       navigation.getParent()?.navigate('MainApp');
     }
-  }, [isAuthenticated, isLoading, navigation]);
+  }, [isAuthenticated, authLoading, navigation]);
 
   // Check if form is valid
   const isFormValid = email.trim() !== "" && password.trim() !== "";
 
-  // Basic placeholder login (no API yet)
+  // Handle login with API
   const handleLogin = async () => {
     if (!isFormValid) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-    // Set a dummy token and minimal user; replace with real API later
-    await login("dummy-token", { email: email.trim() });
-    Alert.alert("Success", "Logged in (placeholder)");
+
+    setIsSubmitting(true);
+    try {
+      const result = await loginMutation.mutateAsync({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      if (result?.token && result?.data) {
+        // Login hook already handles storing token and user data
+        Alert.alert("Success", "Logged in successfully");
+        // Navigation will happen automatically via useEffect when isAuthenticated changes
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Login failed. Please try again.';
+      Alert.alert("Login Error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -175,18 +195,18 @@ const LoginScreen = () => {
         {/* Login Button */}
         <TouchableOpacity
           onPress={handleLogin}
+          disabled={isSubmitting || !isFormValid}
           style={[
             styles.loginButton,
             {
               backgroundColor: isFormValid ? theme.colors.primary : theme.colors.border,
-              opacity: isFormValid ? 1 : 0.6,
+              opacity: (isSubmitting || !isFormValid) ? 0.6 : 1,
             }
           ]}
-          disabled={!isFormValid}
           activeOpacity={0.8}
         >
           <ThemedText style={[styles.loginText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
-            Login
+            {isSubmitting ? 'Logging in...' : 'Login'}
           </ThemedText>
         </TouchableOpacity>
 

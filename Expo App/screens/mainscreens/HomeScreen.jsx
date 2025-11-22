@@ -15,6 +15,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
+import { Linking, Image } from 'react-native';
+import { useBanners } from '../../api/hooks';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -28,19 +30,16 @@ const FEATURE_ITEMS = [
   { id: 6, icon: 'trophy-outline', title: 'Achievements', locked: false },
 ];
 
-// Dummy carousel images - placeholder URIs for now
-const CAROUSEL_IMAGES = [
-  { id: 1, uri: 'https://via.placeholder.com/400x200/E53E3E/FFFFFF?text=Image+1' },
-  { id: 2, uri: 'https://via.placeholder.com/400x200/E53E3E/FFFFFF?text=Image+2' },
-  { id: 3, uri: 'https://via.placeholder.com/400x200/E53E3E/FFFFFF?text=Image+3' },
-];
-
 const HomeScreen = () => {
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
   const scrollViewRef = useRef(null);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { theme, mode } = useTheme();
+  
+  // Fetch banners from API
+  const { data: bannersData, isLoading: isLoadingBanners } = useBanners({ per_page: 10 });
+  const banners = bannersData?.data || [];
   
   // Animation for cards
   const cardAnimations = useRef(
@@ -242,64 +241,97 @@ const HomeScreen = () => {
 
         {/* Bottom Carousel Banner */}
         <View style={styles.carouselContainer}>
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleCarouselScroll}
-            style={styles.carousel}
-            contentContainerStyle={styles.carouselContent}
-          >
-            {CAROUSEL_IMAGES.map((item) => (
-              <View key={item.id} style={styles.carouselItem}>
-                <View style={styles.carouselBanner}>
-                  {/* Left Side - PAKFIT Branding */}
-                  <View style={styles.bannerLeft}>
-                    <View style={styles.bannerLogoCircle}>
-                      <ThemedText style={styles.bannerLogoText} font="manrope" weight="bold">
-                        F
+          {isLoadingBanners ? (
+            <View style={styles.carouselLoadingContainer}>
+              <ThemedText style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+                Loading banners...
+              </ThemedText>
+            </View>
+          ) : banners.length > 0 ? (
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleCarouselScroll}
+              style={styles.carousel}
+              contentContainerStyle={styles.carouselContent}
+            >
+              {banners.map((banner) => (
+              <TouchableOpacity 
+                key={banner.id} 
+                style={styles.carouselItem}
+                onPress={() => {
+                  if (banner.link_url) {
+                    Linking.openURL(banner.link_url).catch(console.error);
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                {banner.image_url ? (
+                  <Image 
+                    source={{ uri: banner.image_url }} 
+                    style={styles.bannerImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.carouselBanner}>
+                    {/* Left Side - PAKFIT Branding */}
+                    <View style={styles.bannerLeft}>
+                      <View style={styles.bannerLogoCircle}>
+                        <ThemedText style={styles.bannerLogoText} font="manrope" weight="bold">
+                          F
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.bannerBrandText} font="oleo" weight="bold">
+                        PAKFIT
                       </ThemedText>
-                    </View>
-                    <ThemedText style={styles.bannerBrandText} font="oleo" weight="bold">
-                      PAKFIT
-                    </ThemedText>
-                    <ThemedText style={styles.bannerTaglineText} font="manrope" weight="regular">
-                      Pakistan's 1st Fitness App
-                    </ThemedText>
-                    <View style={styles.badgesContainer}>
-                      <View style={styles.badgePlaceholder}>
-                        <ThemedText style={styles.badgeText} font="manrope" weight="medium">
-                          Google Play
-                        </ThemedText>
-                      </View>
-                      <View style={styles.badgePlaceholder}>
-                        <ThemedText style={styles.badgeText} font="manrope" weight="medium">
-                          App Store
-                        </ThemedText>
+                      <ThemedText style={styles.bannerTaglineText} font="manrope" weight="regular">
+                        {banner.description || "Pakistan's 1st Fitness App"}
+                      </ThemedText>
+                      <View style={styles.badgesContainer}>
+                        <View style={styles.badgePlaceholder}>
+                          <ThemedText style={styles.badgeText} font="manrope" weight="medium">
+                            Google Play
+                          </ThemedText>
+                        </View>
+                        <View style={styles.badgePlaceholder}>
+                          <ThemedText style={styles.badgeText} font="manrope" weight="medium">
+                            App Store
+                          </ThemedText>
+                        </View>
                       </View>
                     </View>
-                  </View>
 
-                  {/* Right Side - Fitness Person Image */}
-                  <View style={styles.bannerRight}>
-                    <View style={styles.fitnessImagePlaceholder}>
-                      <TouchableOpacity style={styles.learnMoreButton}>
-                        <ThemedText style={styles.learnMoreText} font="manrope" weight="bold">
-                          LEARN MORE
-                        </ThemedText>
-                      </TouchableOpacity>
-                      <Ionicons name="fitness" size={80} color="#FFFFFF" />
+                    {/* Right Side - Fitness Person Image */}
+                    <View style={styles.bannerRight}>
+                      <View style={styles.fitnessImagePlaceholder}>
+                        <TouchableOpacity style={styles.learnMoreButton}>
+                          <ThemedText style={styles.learnMoreText} font="manrope" weight="bold">
+                            LEARN MORE
+                          </ThemedText>
+                        </TouchableOpacity>
+                        <Ionicons name="fitness" size={80} color="#FFFFFF" />
+                      </View>
                     </View>
                   </View>
-                </View>
-              </View>
+                )}
+                {banner.title && (
+                  <View style={styles.bannerTitleOverlay}>
+                    <ThemedText style={styles.bannerTitleText} font="manrope" weight="bold">
+                      {banner.title}
+                    </ThemedText>
+                  </View>
+                )}
+              </TouchableOpacity>
             ))}
           </ScrollView>
+          ) : null}
 
           {/* Carousel Pagination Dots */}
-          <View style={styles.paginationContainer}>
-            {CAROUSEL_IMAGES.map((_, index) => (
+          {banners.length > 0 && (
+            <View style={styles.paginationContainer}>
+              {banners.map((_, index) => (
               <View
                 key={index}
                 style={[
@@ -307,8 +339,9 @@ const HomeScreen = () => {
                   activeCarouselIndex === index && styles.paginationDotActive,
                 ]}
               />
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -494,6 +527,33 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: SCREEN_WIDTH - 48,
     marginLeft: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bannerImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+  },
+  bannerTitleOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 12,
+  },
+  bannerTitleText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  carouselLoadingContainer: {
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
   },
   carouselBanner: {
     flexDirection: 'row',

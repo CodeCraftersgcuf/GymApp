@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getToken, getUserData, storeAuthData, clearAuthData, isAuthenticated } from '../utils/tokenStorage';
+import { useCurrentUser } from '../api/hooks';
 
 const AuthContext = createContext({
   user: null,
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldFetchUser, setShouldFetchUser] = useState(false);
 
   // Initialize auth state on app start
   useEffect(() => {
@@ -60,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(storedUser);
+        setShouldFetchUser(true); // Enable user data fetching from API
         console.log('User authenticated successfully');
       } else {
         console.log('No stored auth data found');
@@ -77,6 +80,29 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
+
+  // Fetch current user from API if authenticated
+  // Note: This hook will only run when shouldFetchUser is true and token exists
+  const { data: currentUserData } = useCurrentUser({
+    enabled: shouldFetchUser && !!token,
+    onSuccess: (data) => {
+      if (data?.data) {
+        setUser(data.data);
+        // Update stored user data
+        storeAuthData(token, data.data).catch(console.error);
+      }
+    },
+    onError: (error) => {
+      console.error('Error fetching current user:', error);
+      // If 401, user token is invalid, clear auth
+      if (error?.statusCode === 401) {
+        clearAuthData();
+        setToken(null);
+        setUser(null);
+        setShouldFetchUser(false);
+      }
+    },
+  });
 
   const login = async (token, userData) => {
     try {
@@ -102,7 +128,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = async (userData) => {
     try {
-      await storeUserData(userData);
+      await storeAuthData(token, userData);
       setUser(userData);
     } catch (error) {
       console.error('Error updating user:', error);

@@ -16,100 +16,53 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
+import { useFAQs } from '../../api/hooks';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Dummy JSON data for FAQs - will be replaced with API data later
-const FAQS_DATA = [
-  {
-    id: 1,
-    question: "What is PakFit?",
-    answer: "PakFit is Pakistan's 1st Fitness App and a Digital Fitness Platform dedicated towards helping people achieve their Fitness Goals.",
-  },
-  {
-    id: 2,
-    question: "Who is Omar Bilal Ahmad ?",
-    answer: "Omar Bilal Ahmad is Pakistan's 1st Fitness Consultant and the founder of PakFit. He has extensive experience in fitness consultation and training.",
-  },
-  {
-    id: 3,
-    question: "What is the Qualification of Omar Bilal Ahmad ?",
-    answer: "Omar Bilal Ahmad holds professional certifications in fitness training and nutrition. He is recognized as Pakistan's 1st Fitness Consultant with years of expertise.",
-  },
-  {
-    id: 4,
-    question: "How is Omar Bilal Ahmad, The 1st Fitness Consultant of Pakistan?",
-    answer: "Omar Bilal Ahmad has been pioneering fitness consultation in Pakistan, establishing himself as the first certified fitness consultant in the country with a proven track record.",
-  },
-  {
-    id: 5,
-    question: "How many Clients have Omar Bilal Ahmad Consulted?",
-    answer: "Omar Bilal Ahmad has consulted thousands of clients across Pakistan, helping them achieve their fitness goals through personalized consultation and training programs.",
-  },
-  {
-    id: 6,
-    question: "How can we trust, Omar Bilal Ahmad?",
-    answer: "Omar Bilal Ahmad has established trust through years of successful client transformations, professional certifications, and a transparent approach to fitness consultation. His reputation speaks for itself.",
-  },
-  {
-    id: 7,
-    question: "How can we trust the Reviews published on the PakFit App?",
-    answer: "All reviews published on the PakFit App are verified and authentic. They come from real clients who have completed consultation programs and achieved their fitness goals.",
-  },
-  {
-    id: 8,
-    question: "What is the guarantee that I will achieve my Fitness Goals?",
-    answer: "While individual results may vary, PakFit provides comprehensive consultation programs, personalized plans, and ongoing support to maximize your chances of achieving your fitness goals. Success depends on following the program consistently.",
-  },
-  {
-    id: 9,
-    question: "What is the Consultation Procedure?",
-    answer: "The consultation procedure involves an initial assessment of your fitness goals, body metrics, and lifestyle. Based on this, a personalized fitness and nutrition plan is created. Regular follow-ups ensure progress tracking and plan adjustments as needed.",
-  },
-  {
-    id: 10,
-    question: "Who can join the Consultation Program?",
-    answer: "Anyone who is committed to improving their fitness and health can join the Consultation Program. Whether you're a beginner or experienced, the program is tailored to meet your individual needs and goals.",
-  },
-];
-
 const FAQsScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { theme, mode } = useTheme();
-  const [expandedItems, setExpandedItems] = useState(new Set([1])); // First item expanded by default
   
-  // Animation for FAQ cards
+  // Fetch FAQs from API
+  const { data: faqsData, isLoading: isLoadingFAQs } = useFAQs({ per_page: 100 });
+  const faqs = faqsData?.data || [];
+  const [expandedItems, setExpandedItems] = useState(new Set());
+  
+  // Animation for FAQ cards - initialize with max expected items
   const cardAnimations = useRef(
-    FAQS_DATA.map(() => ({
+    Array(100).fill(null).map(() => ({
       opacity: new Animated.Value(0),
       translateY: new Animated.Value(20),
     }))
   ).current;
   
   useEffect(() => {
-    // Staggered animation for FAQ cards
-    Animated.stagger(50,
-      cardAnimations.map(anim =>
-        Animated.parallel([
-          Animated.timing(anim.opacity, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.spring(anim.translateY, {
-            toValue: 0,
-            tension: 50,
-            friction: 7,
-            useNativeDriver: true,
-          }),
-        ])
-      )
-    ).start();
-  }, []);
+    // Staggered animation for FAQ cards when FAQs are loaded
+    if (faqs.length > 0) {
+      Animated.stagger(50,
+        cardAnimations.slice(0, faqs.length).map(anim =>
+          Animated.parallel([
+            Animated.timing(anim.opacity, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.spring(anim.translateY, {
+              toValue: 0,
+              tension: 50,
+              friction: 7,
+              useNativeDriver: true,
+            }),
+          ])
+        )
+      ).start();
+    }
+  }, [faqs.length]);
 
   const toggleItem = (id) => {
     // Smooth layout animation
@@ -162,7 +115,21 @@ const FAQsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {FAQS_DATA.map((faq, index) => {
+        {isLoadingFAQs ? (
+          <View style={styles.loadingContainer}>
+            <ThemedText style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+              Loading FAQs...
+            </ThemedText>
+          </View>
+        ) : faqs.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="help-circle-outline" size={64} color={theme.colors.textSecondary} />
+            <ThemedText style={[styles.emptyText, { color: theme.colors.textSecondary }]} font="manrope" weight="medium">
+              No FAQs available
+            </ThemedText>
+          </View>
+        ) : (
+          faqs.map((faq, index) => {
           const isExpanded = expandedItems.has(faq.id);
           const anim = cardAnimations[index];
           return (
@@ -210,7 +177,8 @@ const FAQsScreen = () => {
               )}
             </Animated.View>
           );
-        })}
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -219,6 +187,25 @@ const FAQsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
   },
   header: {
     flexDirection: 'row',

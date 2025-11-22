@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../components/ThemeProvider';
 import ThemedText from '../../components/ThemedText';
+import { useLogout } from '../../api/hooks';
 
 // Dummy JSON data for other options - will be replaced with API data later
 const OTHER_OPTIONS = [
@@ -29,8 +30,9 @@ const OTHER_OPTIONS = [
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
+  const { logout: authLogout } = useAuth();
   const { theme, mode, toggleMode } = useTheme();
+  const logoutMutation = useLogout();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // Animation for theme toggle
@@ -67,8 +69,14 @@ const ProfileScreen = () => {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            // Navigation will be handled by RootNavigator based on auth state
+            try {
+              await logoutMutation.mutateAsync();
+              // Logout hook already handles clearing auth data and navigation
+            } catch (error) {
+              console.error('Logout error:', error);
+              // Even if API call fails, clear local auth
+              authLogout();
+            }
           },
         },
       ],

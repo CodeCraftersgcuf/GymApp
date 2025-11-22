@@ -17,12 +17,14 @@ import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/nativ
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../components/ThemeProvider";
 import ThemedText from "../../components/ThemedText";
+import { useRegister } from "../../api/hooks";
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { login } = useAuth();
+  const { login: authLogin } = useAuth();
   const { theme, mode } = useTheme();
+  const registerMutation = useRegister();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -101,7 +103,7 @@ const RegisterScreen = () => {
     });
   };
 
-  // Basic placeholder register (no API yet)
+  // Handle registration with API
   const handleRegister = async () => {
     if (!isFormValid) {
       if (!acceptedTerms) {
@@ -121,20 +123,37 @@ const RegisterScreen = () => {
       password: password.trim(),
       name: profileData.name.trim(),
       gender: profileData.gender,
-      weight: profileData.weight.trim(),
-      location: profileData.location,
-      profileImage: profileData.profileImage,
+      weight_kg: parseFloat(profileData.weight) || 0,
+      city: profileData.location,
+      locale: 'en',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     };
 
-    // TODO: Replace with actual API call
-    console.log("Registration payload:", registrationPayload);
-    
-    await login("dummy-token", { 
-      email: email.trim(),
-      name: profileData.name.trim(),
-      ...profileData 
-    });
-    Alert.alert("Success", "Account created successfully!");
+    // Add profile picture if available
+    if (profileData.profileImage) {
+      registrationPayload.profile_picture = profileData.profileImage;
+    }
+
+    try {
+      const result = await registerMutation.mutateAsync(registrationPayload);
+      
+      if (result?.token && result?.data) {
+        // Register hook already handles storing token and user data
+        Alert.alert("Success", "Account created successfully!");
+        // Navigation will happen automatically via useEffect when isAuthenticated changes
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      const errorMessage = error?.data?.message || error?.message || 'Registration failed. Please try again.';
+      const validationErrors = error?.data?.errors;
+      
+      if (validationErrors) {
+        const errorList = Object.values(validationErrors).flat().join('\n');
+        Alert.alert("Registration Error", errorList || errorMessage);
+      } else {
+        Alert.alert("Registration Error", errorMessage);
+      }
+    }
   };
 
   return (
@@ -304,14 +323,14 @@ const RegisterScreen = () => {
                 styles.registerButton,
                 {
                   backgroundColor: isFormValid ? theme.colors.primary : theme.colors.border,
-                  opacity: isFormValid ? 1 : 0.6,
+                  opacity: (registerMutation.isPending || !isFormValid) ? 0.6 : 1,
                 }
               ]}
-              disabled={!isFormValid}
+              disabled={registerMutation.isPending || !isFormValid}
               activeOpacity={0.8}
             >
               <ThemedText style={[styles.registerText, { color: theme.colors.onPrimary }]} font="manrope" weight="bold">
-                REGISTER
+                {registerMutation.isPending ? 'CREATING ACCOUNT...' : 'REGISTER'}
               </ThemedText>
             </TouchableOpacity>
 
