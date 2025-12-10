@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\CreateOrderRequest;
+use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\Payments\PaymentProviderInterface;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class OrderController extends Controller
@@ -18,17 +19,17 @@ class OrderController extends Controller
     /**
      * Create a new order and initiate payment.
      */
-    public function store(Request $request): JsonResponse
+    public function store(CreateOrderRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'provider' => 'sometimes|in:stripe,jazzcash,easypaisa|default:stripe',
-        ]);
+        $validated = $request->validated();
 
         $product = Product::findOrFail($validated['product_id']);
 
         if (!$product->active) {
-            return response()->json(['error' => 'Product is not available'], 400);
+            return response()->json([
+                'error' => 'product_unavailable',
+                'message' => 'Product is not available.',
+            ], 400);
         }
 
         $order = Order::create([
@@ -45,14 +46,22 @@ class OrderController extends Controller
 
             return response()->json([
                 'data' => [
-                    'order_id' => $order->id,
+                    'order' => new OrderResource($order->load('product')),
                     'checkout_url' => $checkout['checkout_url'],
                     'client_secret' => $checkout['client_secret'],
                 ],
+                'message' => 'Order created successfully. Please complete payment.',
             ], 201);
         } catch (\Exception $e) {
             $order->update(['status' => 'failed']);
-            return response()->json(['error' => 'Payment initiation failed'], 500);
+            \Log::error('Payment initiation failed', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'error' => 'payment_failed',
+                'message' => 'Payment initiation failed. Please try again.',
+            ], 500);
         }
     }
 }

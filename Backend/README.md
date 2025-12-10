@@ -13,6 +13,10 @@ Production-ready Laravel 11 backend for a fitness application similar to PakFit,
 - ✅ **Payments** abstraction + Stripe webhooks (extensible to local gateways)
 - ✅ **OpenAPI 3 spec** and Postman collection
 
+
+To add the admin -- as the admin@gamil.com and the password of the admin
+php artisan db:seed
+
 ## Requirements
 
 - PHP ≥ 8.2

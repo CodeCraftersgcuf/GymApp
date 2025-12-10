@@ -12,7 +12,7 @@ class AuthController extends Controller
 {
     public function showLoginForm()
     {
-        if (Auth::check() && Auth::user()->hasRole('Admin')) {
+        if (Auth::guard('web')->check() && Auth::guard('web')->user()->hasRole('Admin', 'web')) {
             return redirect()->route('admin.dashboard');
         }
         return view('admin.auth.login');
@@ -27,19 +27,26 @@ class AuthController extends Controller
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        if (!$user->hasRole('Admin')) {
+        if (!Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        // Check if user has Admin role (explicitly check with web guard)
+        if (!$user->hasRole('Admin', 'web')) {
             throw ValidationException::withMessages([
                 'email' => ['You do not have admin access.'],
             ]);
         }
 
-        Auth::login($user, $request->boolean('remember'));
+        Auth::guard('web')->login($user, $request->boolean('remember'));
 
         return redirect()->route('admin.dashboard');
     }

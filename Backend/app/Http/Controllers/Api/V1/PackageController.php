@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\PackageResource;
 use App\Models\Package;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -19,20 +20,7 @@ class PackageController extends Controller
             ->orderBy('id')
             ->get();
 
-        return response()->json([
-            'data' => $packages->map(function ($package) {
-                return [
-                    'id' => $package->id,
-                    'title' => $package->title,
-                    'bank_name' => $package->bank_name,
-                    'account_title' => $package->account_title,
-                    'account_number' => $package->account_number,
-                    'whatsapp_number' => $package->whatsapp_number,
-                    'description' => $package->description,
-                    'order' => $package->order,
-                ];
-            }),
-        ]);
+        return PackageResource::collection($packages);
     }
 
     /**
@@ -43,16 +31,7 @@ class PackageController extends Controller
         $package = Package::where('is_active', true)->findOrFail($id);
 
         return response()->json([
-            'data' => [
-                'id' => $package->id,
-                'title' => $package->title,
-                'bank_name' => $package->bank_name,
-                'account_title' => $package->account_title,
-                'account_number' => $package->account_number,
-                'whatsapp_number' => $package->whatsapp_number,
-                'description' => $package->description,
-                'order' => $package->order,
-            ],
+            'data' => new PackageResource($package),
         ]);
     }
 }

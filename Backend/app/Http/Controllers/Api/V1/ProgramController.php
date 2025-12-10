@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\CreateProgramRequest;
 use App\Http\Resources\Api\V1\ProgramResource;
 use App\Models\Program;
 use Illuminate\Http\Request;
@@ -41,9 +42,7 @@ class ProgramController extends Controller
             'phases.workouts.exercises'
         ])->findOrFail($id);
 
-        if (!$program->is_public && !auth()->check()) {
-            abort(403);
-        }
+        $this->authorize('view', $program);
 
         return new ProgramResource($program);
     }
@@ -51,23 +50,20 @@ class ProgramController extends Controller
     /**
      * Create a new program (Coach only).
      */
-    public function store(Request $request): JsonResponse
+    public function store(CreateProgramRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'goal' => 'required|in:fat_loss,muscle_gain,maintenance,endurance,strength',
-            'level' => 'required|in:beginner,intermediate,advanced',
-            'duration_weeks' => 'required|integer|min:1',
-            'is_public' => 'sometimes|boolean',
-            'price_cents' => 'sometimes|nullable|integer|min:0',
-            'description' => 'sometimes|nullable|string',
-        ]);
+        $this->authorize('create', Program::class);
+
+        $validated = $request->validated();
 
         $program = Program::create([
             ...$validated,
             'coach_id' => auth()->id(),
         ]);
 
-        return new ProgramResource($program->load('coach'));
+        return response()->json([
+            'data' => new ProgramResource($program->load('coach')),
+            'message' => 'Program created successfully.',
+        ], 201);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -17,30 +18,7 @@ class ProductController extends Controller
 
         $products = $query->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'data' => $products->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'slug' => $product->slug,
-                    'name' => $product->name,
-                    'description' => $product->description,
-                    'price_cents' => $product->price_cents,
-                    'interval' => $product->interval,
-                    'features' => $product->features,
-                ];
-            }),
-            'meta' => [
-                'current_page' => $products->currentPage(),
-                'per_page' => $products->perPage(),
-                'total' => $products->total(),
-            ],
-            'links' => [
-                'first' => $products->url(1),
-                'last' => $products->url($products->lastPage()),
-                'prev' => $products->previousPageUrl(),
-                'next' => $products->nextPageUrl(),
-            ],
-        ]);
+        return ProductResource::collection($products);
     }
 
     /**
@@ -50,16 +28,6 @@ class ProductController extends Controller
     {
         $product = Product::where('active', true)->findOrFail($id);
 
-        return response()->json([
-            'data' => [
-                'id' => $product->id,
-                'slug' => $product->slug,
-                'name' => $product->name,
-                'description' => $product->description,
-                'price_cents' => $product->price_cents,
-                'interval' => $product->interval,
-                'features' => $product->features,
-            ],
-        ]);
+        return new ProductResource($product);
     }
 }

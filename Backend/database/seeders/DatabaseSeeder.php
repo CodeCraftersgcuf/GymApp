@@ -25,16 +25,23 @@ class DatabaseSeeder extends Seeder
         $coachRole = Role::firstOrCreate(['name' => 'Coach', 'guard_name' => 'web']);
         $userRole = Role::firstOrCreate(['name' => 'User', 'guard_name' => 'web']);
 
-        // Create admin user
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@fitness.app'],
+        // Create or update admin user
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@gmail.com'],
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
         );
-        $admin->assignRole($adminRole);
+        
+        // Ensure admin has the Admin role
+        if (!$admin->hasRole('Admin')) {
+            $admin->assignRole($adminRole);
+        }
+        
+        // Remove any other roles from admin
+        $admin->syncRoles([$adminRole]);
 
         // Create coach users
         $coach1 = User::firstOrCreate(
